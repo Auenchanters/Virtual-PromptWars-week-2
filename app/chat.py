@@ -11,7 +11,7 @@ from app.grounding import grounding_text
 
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-001")
 MAX_HISTORY_TURNS = 12
 MAX_OUTPUT_TOKENS = 1024
 TEMPERATURE = 0.3
@@ -72,7 +72,6 @@ class RealGeminiClient:
     def __init__(self, api_key: str, model: str = MODEL_NAME) -> None:
         from google import genai
 
-        self._genai = genai
         self._client = genai.Client(api_key=api_key)
         self._model = model
         self._system_instruction = _build_system_prompt()

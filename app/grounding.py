@@ -28,6 +28,8 @@ def _validate(data: dict[str, Any]) -> None:
         "elections",
         "general_election_timeline",
         "polling_day",
+        "special_voters",
+        "model_code_of_conduct",
         "common_questions",
         "disclaimer",
     }

@@ -6,6 +6,7 @@ import logging
 import os
 import time
 from collections import deque
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 
@@ -27,6 +28,11 @@ MAX_MESSAGE_CHARS = 1000
 MAX_HISTORY_MESSAGES = 20
 RATE_LIMIT_REQUESTS = 30
 RATE_LIMIT_WINDOW_SECONDS = 60
+DEFAULT_ALLOWED_ORIGINS = (
+    "https://election-assistant-256416723201.asia-south1.run.app"
+)
+ELECTION_INFO = load_election_info()
+DISCLAIMER = ELECTION_INFO["disclaimer"]
 
 
 class ChatTurn(BaseModel):
@@ -63,8 +69,23 @@ class RateLimiter:
         self._window = window_seconds
         self._hits: dict[str, deque[float]] = {}
 
+    @property
+    def max_requests(self) -> int:
+        return self._max
+
+    def reset(self) -> None:
+        self._hits.clear()
+
     def check(self, key: str) -> bool:
         now = time.monotonic()
+        stale_keys = [
+            hit_key
+            for hit_key, q in self._hits.items()
+            if not q or now - q[-1] > self._window * 2
+        ]
+        for hit_key in stale_keys:
+            del self._hits[hit_key]
+
         q = self._hits.setdefault(key, deque())
         while q and now - q[0] > self._window:
             q.popleft()
@@ -77,8 +98,14 @@ class RateLimiter:
 rate_limiter = RateLimiter(RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW_SECONDS)
 
 
-def get_gemini_client() -> GeminiClient:
-    return get_client()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.gemini_client = get_client()
+    yield
+
+
+def get_gemini_client(request: Request) -> GeminiClient:
+    return request.app.state.gemini_client
 
 
 app = FastAPI(
@@ -87,23 +114,29 @@ app = FastAPI(
     version="1.0.0",
     docs_url=None,
     redoc_url=None,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",") if o.strip()],
+    allow_origins=[
+        o.strip()
+        for o in os.getenv("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS).split(",")
+        if o.strip()
+    ],
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
 
 
 @app.middleware("http")
-async def security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]
+async def add_headers(request: Request, call_next):  # type: ignore[no-untyped-def]
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "style-src 'self' 'unsafe-inline'; "
@@ -114,13 +147,15 @@ async def security_headers(request: Request, call_next):  # type: ignore[no-unty
         "base-uri 'self'; "
         "form-action 'self'"
     )
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "public, max-age=86400, immutable"
     return response
 
 
 def _client_ip(request: Request) -> str:
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        return forwarded.split(",")[-1].strip()
     return request.client.host if request.client else "unknown"
 
 
@@ -131,7 +166,7 @@ def health() -> dict[str, str]:
 
 @app.get("/api/info")
 def api_info() -> JSONResponse:
-    return JSONResponse(load_election_info())
+    return JSONResponse(ELECTION_INFO)
 
 
 @app.post("/api/chat", response_model=ChatResponse)
@@ -159,10 +194,7 @@ def api_chat(
             detail="The assistant is temporarily unavailable. Please try again shortly.",
         ) from None
 
-    return ChatResponse(
-        reply=reply,
-        disclaimer=load_election_info()["disclaimer"],
-    )
+    return ChatResponse(reply=reply, disclaimer=DISCLAIMER)
 
 
 @app.get("/")

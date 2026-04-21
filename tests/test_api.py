@@ -28,7 +28,6 @@ def test_chat_happy_path(client, fake_client):
     body = r.json()
     assert body["reply"].startswith("Use Form 6")
     assert "eci.gov.in" in body["disclaimer"]
-    # Request should have reached the fake exactly once, with the user turn appended.
     assert len(fake_client.calls) == 1
     last_call = fake_client.calls[0]
     assert last_call[-1].role == "user"
@@ -52,8 +51,7 @@ def test_chat_rejects_oversized_history(client):
 
 
 def test_chat_rate_limit(client):
-    # After rate_limiter.max_requests successful calls, the next one should 429.
-    max_req = rate_limiter._max  # type: ignore[attr-defined]
+    max_req = rate_limiter.max_requests
     for _ in range(max_req):
         r = client.post("/api/chat", json={"history": [], "message": "hello"})
         assert r.status_code == 200
@@ -67,7 +65,7 @@ def test_chat_returns_503_when_gemini_fails(failing_client_factory):
     app.dependency_overrides[get_gemini_client] = failing_client_factory(
         RuntimeError("boom")
     )
-    rate_limiter._hits.clear()  # type: ignore[attr-defined]
+    rate_limiter.reset()
     try:
         with TestClient(app) as tc:
             r = tc.post("/api/chat", json={"history": [], "message": "hello"})
@@ -81,3 +79,10 @@ def test_security_headers_on_api(client):
     assert r.headers["x-content-type-options"] == "nosniff"
     assert r.headers["x-frame-options"] == "DENY"
     assert r.headers["referrer-policy"] == "strict-origin-when-cross-origin"
+    assert r.headers["strict-transport-security"] == "max-age=31536000; includeSubDomains"
+
+
+def test_static_assets_get_cache_headers(client):
+    r = client.get("/static/style.css")
+    assert r.status_code == 200
+    assert r.headers["cache-control"] == "public, max-age=86400, immutable"

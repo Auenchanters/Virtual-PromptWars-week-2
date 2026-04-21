@@ -38,8 +38,7 @@ def client(fake_client: FakeGeminiClient) -> Iterator[TestClient]:
         return fake_client
 
     app.dependency_overrides[get_gemini_client] = _override
-    # reset rate-limiter state between tests
-    rate_limiter._hits.clear()  # type: ignore[attr-defined]
+    rate_limiter.reset()
     try:
         with TestClient(app) as tc:
             yield tc
