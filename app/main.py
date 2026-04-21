@@ -124,8 +124,8 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-@app.get("/healthz")
-def healthz() -> dict[str, str]:
+@app.get("/health")
+def health() -> dict[str, str]:
     return {"status": "ok"}
 
 

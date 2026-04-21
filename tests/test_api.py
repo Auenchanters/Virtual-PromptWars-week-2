@@ -1,8 +1,8 @@
 from app.main import app, get_gemini_client, rate_limiter
 
 
-def test_healthz(client):
-    r = client.get("/healthz")
+def test_health(client):
+    r = client.get("/health")
     assert r.status_code == 200
     assert r.json() == {"status": "ok"}
 
@@ -77,7 +77,7 @@ def test_chat_returns_503_when_gemini_fails(failing_client_factory):
 
 
 def test_security_headers_on_api(client):
-    r = client.get("/healthz")
+    r = client.get("/health")
     assert r.headers["x-content-type-options"] == "nosniff"
     assert r.headers["x-frame-options"] == "DENY"
     assert r.headers["referrer-policy"] == "strict-origin-when-cross-origin"

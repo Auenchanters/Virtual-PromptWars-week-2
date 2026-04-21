@@ -53,7 +53,7 @@ voter IDs, polling-day procedure, postal ballots, and the general-election timel
 - `POST /api/chat` — takes `{ history, message }`, calls Gemini with the system prompt +
   recent turns, returns `{ reply, disclaimer }`. Protected by in-memory rate limiting and
   Pydantic validation.
-- `GET /healthz` — liveness probe for Cloud Run.
+- `GET /health` — liveness probe for Cloud Run.
 
 ### Security
 
