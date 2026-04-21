@@ -3,7 +3,7 @@ from app.chat import ChatMessage, build_system_prompt, trim_history
 
 def test_system_prompt_embeds_grounding():
     prompt = build_system_prompt()
-    assert "Chunav Sathi" in prompt
+    assert "VoteWise India" in prompt
     assert "Election Commission of India" in prompt
     assert "Form 6" in prompt
     assert "{grounding}" not in prompt  # template placeholder must be filled

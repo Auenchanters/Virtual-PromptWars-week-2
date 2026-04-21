@@ -14,23 +14,166 @@ const eligibilityResult = document.getElementById("eligibility-result");
 const history = [];
 let isSending = false;
 
-/* ---------- Chat ---------- */
+const WELCOME_TEXT =
+  "Namaste! I can explain voter registration, eligibility, what to bring to the booth, the Model Code of Conduct, postal ballots and more. Try a quick question below, or type your own.";
 
-function appendMessage(role, text, { variant = null } = {}) {
+const ASSISTANT_AVATAR_SVG = `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M5 12l5 5 9-11"/>
+</svg>`;
+
+const USER_AVATAR_SVG = `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <circle cx="12" cy="8" r="4"/>
+  <path d="M4 21a8 8 0 0 1 16 0"/>
+</svg>`;
+
+/* ------------------------------------------------------------------
+ * Safe minimal Markdown rendering
+ *  Escapes all HTML, then applies:
+ *    - **bold**
+ *    - *italic* / _italic_
+ *    - `code`
+ *    - bullet lists starting with "* " or "- "
+ *    - numbered lists starting with "1. "
+ *    - paragraphs (blank-line separated)
+ *    - bare URLs become safe links (http/https only)
+ * Never inserts untrusted HTML.
+ * ---------------------------------------------------------------- */
+function escapeHtml(s) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderInline(text) {
+  // bold **..**
+  let out = text.replace(/\*\*([^*\n]+?)\*\*/g, "<strong>$1</strong>");
+  // italic *..* or _.._
+  out = out.replace(/(^|[\s(])\*([^*\n]+?)\*(?=[\s).,!?;:]|$)/g, "$1<em>$2</em>");
+  out = out.replace(/(^|[\s(])_([^_\n]+?)_(?=[\s).,!?;:]|$)/g, "$1<em>$2</em>");
+  // inline code
+  out = out.replace(/`([^`\n]+?)`/g, "<code>$1</code>");
+  // bare http(s) URLs → safe links
+  out = out.replace(
+    /\b(https?:\/\/[^\s<]+[^\s<.,!?;:()])/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
+  return out;
+}
+
+function renderMarkdown(raw) {
+  const escaped = escapeHtml(raw.trim());
+  const lines = escaped.split(/\r?\n/);
+
+  const blocks = [];
+  let para = [];
+  let list = null; // {type: 'ul'|'ol', items: []}
+
+  const flushPara = () => {
+    if (para.length) {
+      blocks.push(`<p>${renderInline(para.join(" "))}</p>`);
+      para = [];
+    }
+  };
+  const flushList = () => {
+    if (list) {
+      const tag = list.type;
+      const items = list.items.map((i) => `<li>${renderInline(i)}</li>`).join("");
+      blocks.push(`<${tag}>${items}</${tag}>`);
+      list = null;
+    }
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\s+$/, "");
+    if (!line.trim()) {
+      flushPara();
+      flushList();
+      continue;
+    }
+
+    const bulletMatch = line.match(/^\s*[-*]\s+(.*)$/);
+    const numMatch = line.match(/^\s*\d+\.\s+(.*)$/);
+
+    if (bulletMatch) {
+      flushPara();
+      if (!list || list.type !== "ul") {
+        flushList();
+        list = { type: "ul", items: [] };
+      }
+      list.items.push(bulletMatch[1]);
+    } else if (numMatch) {
+      flushPara();
+      if (!list || list.type !== "ol") {
+        flushList();
+        list = { type: "ol", items: [] };
+      }
+      list.items.push(numMatch[1]);
+    } else {
+      flushList();
+      para.push(line.trim());
+    }
+  }
+  flushPara();
+  flushList();
+  return blocks.join("");
+}
+
+/* ------------------------------------------------------------------
+ * Chat UI
+ * ---------------------------------------------------------------- */
+function createMessage(role, options = {}) {
   const article = document.createElement("article");
   article.className = `message message--${role}`;
-  if (variant) article.classList.add(`message--${variant}`);
+  if (options.variant) article.classList.add(`message--${options.variant}`);
 
-  const roleEl = document.createElement("div");
-  roleEl.className = "message__role";
-  roleEl.textContent = role === "user" ? "You" : role === "assistant" ? "Assistant" : "Notice";
+  const avatar = document.createElement("div");
+  avatar.className = "message__avatar";
+  avatar.setAttribute("aria-hidden", "true");
+  avatar.innerHTML = role === "user" ? USER_AVATAR_SVG : ASSISTANT_AVATAR_SVG;
+
+  const bubble = document.createElement("div");
+  bubble.className = "message__bubble";
+
+  const roleLabel = document.createElement("div");
+  roleLabel.className = "message__role";
+  roleLabel.textContent =
+    role === "user" ? "You" : role === "assistant" ? "VoteWise India" : "Notice";
 
   const textEl = document.createElement("div");
   textEl.className = "message__text";
-  textEl.textContent = text;
 
-  article.appendChild(roleEl);
-  article.appendChild(textEl);
+  bubble.appendChild(roleLabel);
+  bubble.appendChild(textEl);
+  article.appendChild(avatar);
+  article.appendChild(bubble);
+  return { article, textEl, bubble };
+}
+
+function appendAssistantText(text, { variant = null } = {}) {
+  const { article, textEl } = createMessage("assistant", { variant });
+  textEl.innerHTML = renderMarkdown(text);
+  chatLog.appendChild(article);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return article;
+}
+
+function appendUserText(text) {
+  const { article, textEl } = createMessage("user");
+  // User input: show as plain escaped text with preserved newlines
+  textEl.innerHTML = `<p>${escapeHtml(text).replace(/\n/g, "<br>")}</p>`;
+  chatLog.appendChild(article);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return article;
+}
+
+function appendTypingIndicator() {
+  const { article, textEl } = createMessage("assistant");
+  textEl.innerHTML = `<div class="typing" aria-label="VoteWise India is typing"><span></span><span></span><span></span></div>`;
   chatLog.appendChild(article);
   chatLog.scrollTop = chatLog.scrollHeight;
   return article;
@@ -44,6 +187,11 @@ function showError(message) {
 function clearError() {
   chatError.textContent = "";
   chatError.hidden = true;
+}
+
+function renderWelcome() {
+  chatLog.innerHTML = "";
+  appendAssistantText(WELCOME_TEXT);
 }
 
 async function sendMessage(text) {
@@ -60,8 +208,8 @@ async function sendMessage(text) {
   sendBtn.disabled = true;
   resetBtn.disabled = true;
 
-  appendMessage("user", trimmed);
-  const pending = appendMessage("assistant", "Thinking", { variant: "pending" });
+  appendUserText(trimmed);
+  const pending = appendTypingIndicator();
 
   try {
     const res = await fetch("/api/chat", {
@@ -75,25 +223,27 @@ async function sendMessage(text) {
       if (res.status === 429) msg = "Too many requests. Please wait a moment and try again.";
       else if (res.status === 503) msg = "The assistant is temporarily unavailable. Please try again shortly.";
       pending.remove();
-      appendMessage("assistant", msg, { variant: "error" });
+      appendAssistantText(msg, { variant: "error" });
       return;
     }
 
     const data = await res.json();
     pending.remove();
-    appendMessage("assistant", data.reply);
+    appendAssistantText(data.reply);
 
     history.push({ role: "user", text: trimmed });
     history.push({ role: "assistant", text: data.reply });
   } catch (err) {
     pending.remove();
-    appendMessage("assistant", "Network error. Please check your connection and try again.", {
-      variant: "error",
-    });
+    appendAssistantText(
+      "Network error. Please check your connection and try again.",
+      { variant: "error" }
+    );
   } finally {
     isSending = false;
     sendBtn.disabled = false;
     resetBtn.disabled = false;
+    autoGrow();
     chatInput.focus();
   }
 }
@@ -102,6 +252,7 @@ chatForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const value = chatInput.value;
   chatInput.value = "";
+  autoGrow();
   sendMessage(value);
 });
 
@@ -112,13 +263,15 @@ chatInput.addEventListener("keydown", (e) => {
   }
 });
 
+function autoGrow() {
+  chatInput.style.height = "auto";
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 180) + "px";
+}
+chatInput.addEventListener("input", autoGrow);
+
 resetBtn.addEventListener("click", () => {
   history.length = 0;
-  chatLog.innerHTML = "";
-  appendMessage(
-    "assistant",
-    "Conversation cleared. Ask anything about voter registration, eligibility, polling day, or the election timeline.",
-  );
+  renderWelcome();
   clearError();
   chatInput.focus();
 });
@@ -129,8 +282,9 @@ document.querySelectorAll(".chip[data-prompt]").forEach((chip) => {
   });
 });
 
-/* ---------- Eligibility checker ---------- */
-
+/* ------------------------------------------------------------------
+ * Eligibility checker
+ * ---------------------------------------------------------------- */
 eligibilityForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const fd = new FormData(eligibilityForm);
@@ -154,14 +308,14 @@ eligibilityForm.addEventListener("submit", (e) => {
       "You appear eligible to register as a general voter. Fill Form 6 on voters.eci.gov.in.";
     eligibilityResult.dataset.state = "ok";
   } else {
-    eligibilityResult.textContent =
-      "Not eligible yet because " + reasons.join(", ") + ".";
+    eligibilityResult.textContent = "Not eligible yet because " + reasons.join(", ") + ".";
     eligibilityResult.dataset.state = "no";
   }
 });
 
-/* ---------- Timeline ---------- */
-
+/* ------------------------------------------------------------------
+ * Timeline (loaded from /api/info)
+ * ---------------------------------------------------------------- */
 async function loadTimeline() {
   try {
     const res = await fetch("/api/info");
@@ -183,4 +337,9 @@ async function loadTimeline() {
   }
 }
 
+/* ------------------------------------------------------------------
+ * Init
+ * ---------------------------------------------------------------- */
+renderWelcome();
 loadTimeline();
+autoGrow();

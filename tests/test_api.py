@@ -10,7 +10,7 @@ def test_health(client):
 def test_index_served(client):
     r = client.get("/")
     assert r.status_code == 200
-    assert "Chunav Sathi" in r.text
+    assert "VoteWise India" in r.text
     assert r.headers["content-security-policy"].startswith("default-src 'self'")
 
 
@@ -51,7 +51,7 @@ def test_chat_rejects_oversized_history(client):
     assert r.status_code == 422
 
 
-def test_chat_rate_limit(client, fake_client):
+def test_chat_rate_limit(client):
     # After rate_limiter.max_requests successful calls, the next one should 429.
     max_req = rate_limiter._max  # type: ignore[attr-defined]
     for _ in range(max_req):

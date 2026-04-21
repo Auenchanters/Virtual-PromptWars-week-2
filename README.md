@@ -1,4 +1,4 @@
-# Chunav Sathi — Election Process Education Assistant
+# VoteWise India — Election Process Education Assistant
 
 An interactive web assistant that helps Indian voters understand the election process, timelines
 and steps — built for the **Virtual PromptWars Week 2** hackathon (vertical: *Election Process
