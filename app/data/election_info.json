@@ -1,0 +1,199 @@
+{
+  "country": "India",
+  "authority": {
+    "name": "Election Commission of India",
+    "abbreviation": "ECI",
+    "website": "https://www.eci.gov.in",
+    "voter_portal": "https://voters.eci.gov.in",
+    "description": "Autonomous constitutional body (Article 324) that administers Union and State elections in India."
+  },
+  "eligibility": {
+    "minimum_age_years": 18,
+    "age_qualifying_date": "1 January of the year of electoral roll revision",
+    "must_be_citizen": true,
+    "must_be_ordinarily_resident": true,
+    "disqualifications": [
+      "Declared of unsound mind by a competent court",
+      "Disqualified under laws relating to corrupt practices or election offences",
+      "Not a citizen of India"
+    ]
+  },
+  "registration": {
+    "primary_form": "Form 6",
+    "form_6_purpose": "New voter registration for a person who has turned 18 or has shifted to a new constituency",
+    "other_forms": {
+      "Form 6A": "Registration for overseas (NRI) electors",
+      "Form 6B": "Linking Aadhaar number with voter ID (voluntary)",
+      "Form 7": "Objection to inclusion, or request for deletion of a name",
+      "Form 8": "Correction of entries, shifting within constituency, replacement EPIC, marking as PwD"
+    },
+    "channels": [
+      "Online via Voters' Service Portal (voters.eci.gov.in)",
+      "Voter Helpline mobile app (Android / iOS)",
+      "In person at the Booth Level Officer (BLO) or Electoral Registration Officer (ERO)"
+    ],
+    "documents_typically_required": [
+      "Passport-size photograph",
+      "Proof of age (e.g. birth certificate, Class 10 marksheet, PAN, Aadhaar, passport, driving licence)",
+      "Proof of ordinary residence (e.g. Aadhaar, utility bill, bank passbook, rent agreement, passport)"
+    ],
+    "fee": "Free — no charge for voter registration",
+    "typical_processing_time": "Usually 2–4 weeks after submission; the ERO verifies via the Booth Level Officer before inclusion in the roll.",
+    "how_to_check_status": "Track the Form 6 reference number on voters.eci.gov.in under 'Track Application Status'."
+  },
+  "voter_id": {
+    "name": "Elector's Photo Identity Card (EPIC)",
+    "is_mandatory_to_vote": false,
+    "note": "EPIC is the primary voter ID, but it is not strictly mandatory at the polling booth as long as the voter's name is on the roll and one of the approved alternative photo IDs is produced.",
+    "approved_alternative_ids_at_booth": [
+      "Aadhaar card",
+      "Passport",
+      "Driving licence",
+      "PAN card",
+      "Service Identity Card (Central/State Govt, PSU, Public Ltd. companies)",
+      "Passbook with photograph (Bank/Post Office)",
+      "MNREGA job card",
+      "Health insurance smart card under Ministry of Labour scheme",
+      "Pension document with photograph",
+      "Official identity card issued to MPs/MLAs/MLCs",
+      "Smart card issued under RGI/NPR",
+      "Unique Disability ID (UDID) card"
+    ]
+  },
+  "elections": [
+    {
+      "name": "Lok Sabha (General Election)",
+      "scope": "National",
+      "term_years": 5,
+      "what_you_elect": "Members of Parliament (MPs) to the Lok Sabha, the lower house of Parliament"
+    },
+    {
+      "name": "Rajya Sabha",
+      "scope": "National",
+      "term_years": 6,
+      "what_you_elect": "Indirectly elected by elected members of State Legislative Assemblies; general voters do not vote directly.",
+      "notes": "One-third of seats are up for election every 2 years."
+    },
+    {
+      "name": "Vidhan Sabha (State Legislative Assembly)",
+      "scope": "State",
+      "term_years": 5,
+      "what_you_elect": "Members of the Legislative Assembly (MLAs)"
+    },
+    {
+      "name": "Local Body Elections (Panchayat / Municipality)",
+      "scope": "Local",
+      "term_years": 5,
+      "what_you_elect": "Ward councillors, sarpanchs, mayors, etc.",
+      "notes": "Conducted by the respective State Election Commission, not the ECI."
+    }
+  ],
+  "general_election_timeline": [
+    {
+      "stage": "Announcement",
+      "description": "ECI announces the schedule and the Model Code of Conduct (MCC) comes into immediate effect."
+    },
+    {
+      "stage": "Notification",
+      "description": "Formal notification issued for each phase; nominations start."
+    },
+    {
+      "stage": "Nomination filing",
+      "description": "Candidates file nominations with the Returning Officer within the window (typically 7 days from notification)."
+    },
+    {
+      "stage": "Scrutiny of nominations",
+      "description": "Returning Officer verifies nominations; invalid ones rejected."
+    },
+    {
+      "stage": "Withdrawal",
+      "description": "Candidates may withdraw within the prescribed window (typically 2 days after scrutiny)."
+    },
+    {
+      "stage": "Campaign period",
+      "description": "Campaigning is permitted until 48 hours before polling closes (silence period)."
+    },
+    {
+      "stage": "Polling",
+      "description": "Voting held phase-wise across constituencies on the notified date(s)."
+    },
+    {
+      "stage": "Counting & results",
+      "description": "Counting happens on a single declared date; results announced the same day."
+    }
+  ],
+  "polling_day": {
+    "poll_hours_typical": "07:00 to 18:00 local time (may vary by constituency; the exact timing is published by the ECI for each election).",
+    "what_to_bring": [
+      "EPIC (voter ID card) OR one of the ECI-approved alternative photo IDs",
+      "Knowledge of your polling booth (check on voters.eci.gov.in)"
+    ],
+    "steps_inside_booth": [
+      "First polling officer verifies your name on the electoral roll and checks your ID.",
+      "Second polling officer inks your left forefinger with indelible ink and issues a signed slip.",
+      "Third polling officer activates the ballot unit; you press the button next to your chosen candidate on the EVM.",
+      "You verify your choice on the VVPAT slip, which is then deposited into the sealed box."
+    ],
+    "nota": "NOTA ('None of the Above') is the last option on every EVM ballot and lets you record a vote without supporting any candidate.",
+    "paid_holiday": "Under Section 135B of the Representation of the People Act, 1951, every employee eligible to vote is entitled to a paid holiday on polling day."
+  },
+  "special_voters": {
+    "postal_ballot": {
+      "who_is_eligible": [
+        "Service voters (armed forces, paramilitary, state armed police serving outside their state, government employees posted outside India)",
+        "Voters on election duty",
+        "Electors under preventive detention",
+        "Senior citizens aged 85+ (opt-in)",
+        "Persons with Disabilities (PwD) marked in the roll (opt-in)",
+        "Voters affected by essential services notified by the ECI (opt-in)",
+        "COVID-19 suspect/affected persons in quarantine (when notified)"
+      ],
+      "how_to_apply": "Eligible electors submit Form 12D through the Returning Officer within the notified window after election announcement."
+    },
+    "nri_voters": {
+      "registration_form": "Form 6A",
+      "voting_mode": "Currently must vote in person at the polling station in their Indian constituency; remote/proxy voting for NRIs is not yet operationalised at the general-voter level."
+    }
+  },
+  "model_code_of_conduct": {
+    "when_active": "From the moment the ECI announces the election schedule until the results are declared.",
+    "purpose": "A set of norms that regulates conduct of political parties, candidates, and governments during elections to ensure free and fair elections.",
+    "key_restrictions_examples": [
+      "No new government policy announcements, schemes or grants during this period.",
+      "No use of official machinery or funds for campaigning.",
+      "No appeals on communal or caste lines.",
+      "No campaigning in the 48-hour silence period before polling closes."
+    ]
+  },
+  "common_questions": [
+    {
+      "q": "How do I register to vote?",
+      "a": "Fill Form 6 online at voters.eci.gov.in, via the Voter Helpline app, or in person with your BLO. You must be 18+ on 1 January of the revision year, an Indian citizen, and ordinarily resident in the constituency."
+    },
+    {
+      "q": "Do I have to carry my voter ID (EPIC) to vote?",
+      "a": "No. As long as your name is on the electoral roll, you can vote by showing any one of the ECI-approved alternative photo IDs such as Aadhaar, passport, driving licence, or PAN card."
+    },
+    {
+      "q": "How do I check if I'm on the voter list?",
+      "a": "Visit voters.eci.gov.in and use 'Search in Electoral Roll'. You can search by EPIC number, by details (name, DOB, state), or by mobile number."
+    },
+    {
+      "q": "What do I do if my name is missing or details are wrong?",
+      "a": "File Form 6 (if name is missing) or Form 8 (for corrections / shifting within the same constituency) on the voters' portal."
+    },
+    {
+      "q": "Can I vote from a different city?",
+      "a": "You can only vote at the polling station of the constituency where you are registered. If you have shifted, use Form 8 to transfer within the same constituency, or Form 6 to re-register in the new constituency."
+    },
+    {
+      "q": "What is NOTA?",
+      "a": "NOTA stands for 'None of the Above'. It lets you record that you are voting but do not support any candidate. It is the last option on the EVM."
+    },
+    {
+      "q": "What is the Model Code of Conduct?",
+      "a": "A set of ECI-enforced guidelines that apply to political parties, candidates, and governments from the announcement of elections until results are declared. It prevents misuse of official machinery and ensures a level playing field."
+    }
+  ],
+  "disclaimer": "Information is educational and based on publicly available Election Commission of India rules. For the authoritative and latest details, always refer to eci.gov.in and voters.eci.gov.in."
+}

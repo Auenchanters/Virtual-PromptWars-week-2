@@ -1,2 +1,30 @@
-# Andrej Karpathy Skills - external reference repo, do not push
+# External reference repo, do not push
 andrej-karpathy-skills/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Editors
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Local notes (user scratchpad, not part of the project)
+2. Important Rules.txt

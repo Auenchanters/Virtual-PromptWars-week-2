@@ -1,0 +1,17 @@
+.git
+.gitignore
+.github
+andrej-karpathy-skills
+__pycache__
+*.pyc
+.pytest_cache
+.venv
+venv
+env
+tests
+*.md
+!README.md
+.env
+.env.*
+.vscode
+.idea

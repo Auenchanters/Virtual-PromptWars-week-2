@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Chunav Sathi — an interactive assistant that explains India's election process, timelines and steps."
+    />
+    <meta name="theme-color" content="#0b4d8b" />
+    <title>Chunav Sathi — India Election Process Assistant</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E🗳%3C/text%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <header class="site-header" role="banner">
+      <div class="site-header__inner">
+        <h1 class="site-title">
+          <span aria-hidden="true" class="site-title__emoji">🗳️</span>
+          Chunav Sathi
+        </h1>
+        <p class="site-tagline">
+          Your friendly guide to India's election process, timelines and steps.
+        </p>
+      </div>
+    </header>
+
+    <main id="main" class="layout">
+      <section class="chat-panel" aria-labelledby="chat-heading">
+        <h2 id="chat-heading" class="section-heading">Ask a question</h2>
+
+        <div
+          id="chat-log"
+          class="chat-log"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label="Conversation with Chunav Sathi"
+        >
+          <article class="message message--assistant">
+            <div class="message__role">Assistant</div>
+            <div class="message__text">
+              Namaste! I can explain voter registration, eligibility, what to bring
+              to the booth, the Model Code of Conduct, postal ballots and more.
+              Try a quick question below, or type your own.
+            </div>
+          </article>
+        </div>
+
+        <div class="quick-actions" role="group" aria-label="Quick questions">
+          <button type="button" class="chip" data-prompt="How do I register to vote in India?">
+            How do I register?
+          </button>
+          <button type="button" class="chip" data-prompt="Do I have to carry my voter ID (EPIC) to vote?">
+            Do I need my voter ID?
+          </button>
+          <button type="button" class="chip" data-prompt="What documents do I need to bring on polling day?">
+            What to bring on polling day?
+          </button>
+          <button type="button" class="chip" data-prompt="What is NOTA and how do I use it?">
+            What is NOTA?
+          </button>
+          <button type="button" class="chip" data-prompt="How does the postal ballot work for senior citizens?">
+            Postal ballot for seniors
+          </button>
+          <button type="button" class="chip" data-prompt="Explain the Model Code of Conduct in simple terms.">
+            Model Code of Conduct
+          </button>
+        </div>
+
+        <form id="chat-form" class="chat-form" autocomplete="off" novalidate>
+          <label for="chat-input" class="sr-only">Your question</label>
+          <textarea
+            id="chat-input"
+            name="message"
+            rows="2"
+            maxlength="1000"
+            required
+            placeholder="Ask about registration, polling day, timelines, NOTA…"
+            aria-describedby="chat-hint"
+          ></textarea>
+          <div id="chat-hint" class="chat-hint">
+            Press <kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line.
+          </div>
+          <div class="chat-form__actions">
+            <button type="button" id="reset-btn" class="btn btn--ghost">
+              Clear conversation
+            </button>
+            <button type="submit" id="send-btn" class="btn btn--primary">
+              Send
+            </button>
+          </div>
+          <p id="chat-error" class="chat-error" role="alert" hidden></p>
+        </form>
+      </section>
+
+      <aside class="side-panel" aria-label="Supporting information">
+        <section class="card" aria-labelledby="eligibility-heading">
+          <h2 id="eligibility-heading" class="section-heading">Am I eligible to vote?</h2>
+          <form id="eligibility-form" class="eligibility-form" novalidate>
+            <div class="field">
+              <label for="age">Your age (years)</label>
+              <input
+                id="age"
+                name="age"
+                type="number"
+                min="0"
+                max="120"
+                inputmode="numeric"
+                required
+              />
+            </div>
+            <fieldset class="field">
+              <legend>Are you an Indian citizen?</legend>
+              <label><input type="radio" name="citizen" value="yes" required /> Yes</label>
+              <label><input type="radio" name="citizen" value="no" /> No</label>
+            </fieldset>
+            <fieldset class="field">
+              <legend>Are you ordinarily resident in the constituency?</legend>
+              <label><input type="radio" name="resident" value="yes" required /> Yes</label>
+              <label><input type="radio" name="resident" value="no" /> No</label>
+            </fieldset>
+            <button type="submit" class="btn btn--primary">Check eligibility</button>
+            <p
+              id="eligibility-result"
+              class="eligibility-result"
+              role="status"
+              aria-live="polite"
+            ></p>
+          </form>
+        </section>
+
+        <section class="card" aria-labelledby="timeline-heading">
+          <h2 id="timeline-heading" class="section-heading">General election timeline</h2>
+          <ol id="timeline" class="timeline" aria-busy="true">
+            <li>Loading timeline…</li>
+          </ol>
+        </section>
+
+        <section class="card" aria-labelledby="links-heading">
+          <h2 id="links-heading" class="section-heading">Official links</h2>
+          <ul class="links">
+            <li>
+              <a href="https://www.eci.gov.in" target="_blank" rel="noopener noreferrer">
+                Election Commission of India
+              </a>
+            </li>
+            <li>
+              <a href="https://voters.eci.gov.in" target="_blank" rel="noopener noreferrer">
+                Voters' Service Portal
+              </a>
+            </li>
+          </ul>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer" role="contentinfo">
+      <p id="disclaimer">
+        Educational information based on publicly available ECI rules. For
+        authoritative details, always refer to
+        <a href="https://www.eci.gov.in" target="_blank" rel="noopener noreferrer">eci.gov.in</a>.
+      </p>
+    </footer>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
