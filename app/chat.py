@@ -113,7 +113,6 @@ class RealGeminiClient:
     def __init__(self, api_key: str, model: str = MODEL_NAME) -> None:
         from google import genai
 
-        self._genai = genai
         self._client = genai.Client(api_key=api_key)
         self._model = model
         self._system_instruction = build_system_prompt()

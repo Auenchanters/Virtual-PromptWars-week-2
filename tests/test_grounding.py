@@ -22,6 +22,8 @@ def test_load_election_info_has_expected_shape() -> None:
     assert len(info["elections"]) >= 3
     assert len(info["general_election_timeline"]) >= 5
     assert len(info["common_questions"]) >= 5
+    assert "special_voters" in info
+    assert "model_code_of_conduct" in info
 
 
 def test_grounding_text_mentions_core_topics() -> None:
