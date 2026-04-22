@@ -1,11 +1,67 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --strict-markers --strict-config"
 pythonpath = ["."]
+asyncio_mode = "auto"
+filterwarnings = [
+    "error",
+    # google-genai's protobuf/pkg_resources noise — out of our control
+    "ignore::DeprecationWarning:google.*",
+    "ignore::DeprecationWarning:pkg_resources.*",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+omit = ["app/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 80
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["andrej-karpathy-skills", ".venv", "build", "dist"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP", "SIM"]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "SIM",  # simplify
+    "RUF",  # ruff-specific
+    "S",    # bandit (security)
+    "ANN",  # missing type annotations
+]
+ignore = [
+    "ANN401",  # Allow Any for **kwargs / dict[str, Any] in JSON paths
+    "S101",    # asserts in tests
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "ANN"]
+"app/__init__.py" = ["ANN"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["app"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+disallow_untyped_decorators = false  # FastAPI decorators are dynamic
+plugins = []
+
+[[tool.mypy.overrides]]
+module = ["google", "google.genai", "google.genai.*", "google.cloud", "google.cloud.*"]
+ignore_missing_imports = true

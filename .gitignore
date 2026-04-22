@@ -28,3 +28,9 @@ dist/
 
 # Local notes (user scratchpad, not part of the project)
 2. Important Rules.txt
+
+# Local agent + tooling state
+.claude/
+.coverage
+htmlcov/
+coverage.xml

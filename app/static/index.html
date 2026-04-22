@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="VoteWise India — an interactive assistant that explains India's election process, timelines and steps."
+      content="VoteWise India — an interactive, multi-language assistant that explains India's election process, timelines and steps."
     />
     <meta name="theme-color" content="#4f46e5" />
     <title>VoteWise India — Election Process Assistant</title>
@@ -16,26 +16,44 @@
     />
   </head>
   <body>
-    <a class="skip-link" href="#main">Skip to main content</a>
+    <a class="skip-link" href="#main" data-i18n="skip_link">Skip to main content</a>
 
     <header class="site-header" role="banner">
       <div class="site-header__inner">
-        <div class="brand">
-          <div class="brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12l5 5 9-11" />
-            </svg>
+        <div class="header-top">
+          <div class="brand">
+            <div class="brand__mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12l5 5 9-11" />
+              </svg>
+            </div>
+            <h1 class="brand__name" data-i18n-html="title_html">VoteWise <span class="accent">India</span></h1>
           </div>
-          <h1 class="brand__name">VoteWise <span class="accent">India</span></h1>
+          <div class="header-controls">
+            <label class="lang-select">
+              <span class="sr-only" data-i18n="lang_label">Language</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18" />
+              </svg>
+              <select id="lang-picker" aria-label="Language">
+                <option value="en">English</option>
+              </select>
+            </label>
+          </div>
         </div>
-        <p class="site-tagline">
+        <p class="site-tagline" data-i18n="tagline">
           A friendly, non-partisan guide to India's election process — voter registration,
           eligibility, polling-day steps, and the Election Commission's timeline.
         </p>
         <div class="header-meta">
-          <span class="pill"><span class="pill__dot" aria-hidden="true"></span> Powered by Gemini</span>
-          <span class="pill">Grounded in ECI rules</span>
-          <span class="pill">Non-partisan</span>
+          <span class="pill"><span class="pill__dot" aria-hidden="true"></span><span data-i18n="pill_powered_by">Powered by Gemini</span></span>
+          <span class="pill" data-i18n="pill_grounded">Grounded in ECI rules</span>
+          <span class="pill" data-i18n="pill_nonpartisan">Non-partisan</span>
+          <label class="ground-toggle">
+            <input type="checkbox" id="ground-toggle" checked />
+            <span data-i18n="ground_live">Use live ECI sources</span>
+          </label>
         </div>
       </div>
     </header>
@@ -49,7 +67,7 @@
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
               </svg>
             </span>
-            <h2 id="chat-heading">Ask VoteWise India</h2>
+            <h2 id="chat-heading" data-i18n="title">Ask VoteWise India</h2>
           </div>
         </div>
 
@@ -63,34 +81,34 @@
         ></div>
 
         <div class="quick-actions" role="group" aria-label="Quick questions">
-          <button type="button" class="chip" data-prompt="How do I register to vote in India?">
+          <button type="button" class="chip" data-prompt-key="quick_register" data-prompt="How do I register to vote in India?">
             <span class="chip__emoji" aria-hidden="true">📝</span>
-            How do I register?
+            <span data-i18n="quick_register">How do I register?</span>
           </button>
-          <button type="button" class="chip" data-prompt="Do I have to carry my voter ID (EPIC) to vote?">
+          <button type="button" class="chip" data-prompt-key="quick_voter_id" data-prompt="Do I have to carry my voter ID (EPIC) to vote?">
             <span class="chip__emoji" aria-hidden="true">🪪</span>
-            Do I need voter ID?
+            <span data-i18n="quick_voter_id">Do I need voter ID?</span>
           </button>
-          <button type="button" class="chip" data-prompt="What documents do I need to bring on polling day?">
+          <button type="button" class="chip" data-prompt-key="quick_polling" data-prompt="What documents do I need to bring on polling day?">
             <span class="chip__emoji" aria-hidden="true">🗳️</span>
-            Polling-day checklist
+            <span data-i18n="quick_polling">Polling-day checklist</span>
           </button>
-          <button type="button" class="chip" data-prompt="What is NOTA and how do I use it?">
+          <button type="button" class="chip" data-prompt-key="quick_nota" data-prompt="What is NOTA and how do I use it?">
             <span class="chip__emoji" aria-hidden="true">❓</span>
-            What is NOTA?
+            <span data-i18n="quick_nota">What is NOTA?</span>
           </button>
-          <button type="button" class="chip" data-prompt="How does the postal ballot work for senior citizens?">
+          <button type="button" class="chip" data-prompt-key="quick_postal" data-prompt="How does the postal ballot work for senior citizens?">
             <span class="chip__emoji" aria-hidden="true">📬</span>
-            Postal ballot
+            <span data-i18n="quick_postal">Postal ballot</span>
           </button>
-          <button type="button" class="chip" data-prompt="Explain the Model Code of Conduct in simple terms.">
+          <button type="button" class="chip" data-prompt-key="quick_mcc" data-prompt="Explain the Model Code of Conduct in simple terms.">
             <span class="chip__emoji" aria-hidden="true">⚖️</span>
-            Model Code of Conduct
+            <span data-i18n="quick_mcc">Model Code of Conduct</span>
           </button>
         </div>
 
         <form id="chat-form" class="chat-form" autocomplete="off" novalidate>
-          <label for="chat-input" class="sr-only">Your question</label>
+          <label for="chat-input" class="sr-only" data-i18n="input_placeholder">Your question</label>
           <div class="chat-field">
             <textarea
               id="chat-input"
@@ -100,19 +118,33 @@
               required
               placeholder="Ask about registration, polling day, timelines, NOTA…"
               aria-describedby="chat-hint"
+              data-i18n-placeholder="input_placeholder"
             ></textarea>
+            <button
+              type="button"
+              id="mic-btn"
+              class="icon-btn icon-btn--mic"
+              aria-label="Speak your question"
+              data-i18n-aria="btn_mic"
+              hidden
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="3" width="6" height="12" rx="3" />
+                <path d="M5 11a7 7 0 0014 0M12 18v3M8 21h8" />
+              </svg>
+            </button>
             <div class="chat-field__meta" aria-hidden="true">
-              <span><kbd>Enter</kbd> to send</span>
-              <span><kbd>Shift</kbd>+<kbd>Enter</kbd> newline</span>
+              <span><kbd>Enter</kbd> <span data-i18n="enter_to_send">to send</span></span>
+              <span><kbd>Shift</kbd>+<kbd>Enter</kbd> <span data-i18n="shift_newline">newline</span></span>
             </div>
           </div>
 
           <div class="chat-form__actions">
-            <span id="chat-hint" class="chat-form__hint">Answers are grounded in Election Commission of India rules.</span>
+            <span id="chat-hint" class="chat-form__hint" data-i18n="hint">Answers are grounded in Election Commission of India rules.</span>
             <div class="chat-form__buttons">
-              <button type="button" id="reset-btn" class="btn btn--ghost">Clear</button>
+              <button type="button" id="reset-btn" class="btn btn--ghost" data-i18n="btn_clear">Clear</button>
               <button type="submit" id="send-btn" class="btn btn--primary">
-                Send
+                <span data-i18n="btn_send">Send</span>
                 <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
@@ -132,14 +164,14 @@
               </svg>
             </span>
             <div>
-              <h2 id="eligibility-heading" class="card__title">Am I eligible to vote?</h2>
-              <p class="card__subtitle">Checks the three ECI criteria locally — nothing is sent to the server.</p>
+              <h2 id="eligibility-heading" class="card__title" data-i18n="eligibility_title">Am I eligible to vote?</h2>
+              <p class="card__subtitle" data-i18n="eligibility_subtitle">Checks the three ECI criteria locally — nothing is sent to the server.</p>
             </div>
           </div>
 
           <form id="eligibility-form" class="eligibility-form" novalidate>
             <div class="field">
-              <label for="age" class="field__label">Your age (years)</label>
+              <label for="age" class="field__label" data-i18n="field_age">Your age (years)</label>
               <input
                 id="age"
                 name="age"
@@ -152,28 +184,53 @@
             </div>
 
             <fieldset class="field">
-              <legend>Are you an Indian citizen?</legend>
+              <legend data-i18n="field_citizen">Are you an Indian citizen?</legend>
               <div class="radio-group">
-                <label><input type="radio" name="citizen" value="yes" required /><span>Yes</span></label>
-                <label><input type="radio" name="citizen" value="no" /><span>No</span></label>
+                <label><input type="radio" name="citizen" value="yes" required /><span data-i18n="yes">Yes</span></label>
+                <label><input type="radio" name="citizen" value="no" /><span data-i18n="no">No</span></label>
               </div>
             </fieldset>
 
             <fieldset class="field">
-              <legend>Ordinarily resident in the constituency?</legend>
+              <legend data-i18n="field_resident">Ordinarily resident in the constituency?</legend>
               <div class="radio-group">
-                <label><input type="radio" name="resident" value="yes" required /><span>Yes</span></label>
-                <label><input type="radio" name="resident" value="no" /><span>No</span></label>
+                <label><input type="radio" name="resident" value="yes" required /><span data-i18n="yes">Yes</span></label>
+                <label><input type="radio" name="resident" value="no" /><span data-i18n="no">No</span></label>
               </div>
             </fieldset>
 
-            <button type="submit" class="btn btn--primary">Check eligibility</button>
+            <button type="submit" class="btn btn--primary" data-i18n="btn_check_eligibility">Check eligibility</button>
             <p
               id="eligibility-result"
               class="eligibility-result"
               role="status"
               aria-live="polite"
             ></p>
+          </form>
+        </section>
+
+        <section class="card" aria-labelledby="booth-heading">
+          <div class="card__header">
+            <span class="card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s-7-7.58-7-13a7 7 0 1114 0c0 5.42-7 13-7 13z" />
+                <circle cx="12" cy="9" r="2.5" />
+              </svg>
+            </span>
+            <div>
+              <h2 id="booth-heading" class="card__title" data-i18n="booth_title">Find your polling booth</h2>
+              <p class="card__subtitle" data-i18n="booth_subtitle">Pick your state to open the ECI electoral-roll search with the right state pre-filled.</p>
+            </div>
+          </div>
+
+          <form id="booth-form" class="booth-form" novalidate>
+            <div class="field">
+              <label for="booth-state" class="field__label" data-i18n="booth_label">Your state / UT</label>
+              <select id="booth-state" required>
+                <option value="">—</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn--primary" data-i18n="btn_booth_open">Open ECI search</button>
           </form>
         </section>
 
@@ -186,12 +243,12 @@
               </svg>
             </span>
             <div>
-              <h2 id="timeline-heading" class="card__title">General election timeline</h2>
-              <p class="card__subtitle">Stages the ECI publishes for every national poll.</p>
+              <h2 id="timeline-heading" class="card__title" data-i18n="timeline_title">General election timeline</h2>
+              <p class="card__subtitle" data-i18n="timeline_subtitle">Stages the ECI publishes for every national poll.</p>
             </div>
           </div>
           <ol id="timeline" class="timeline" aria-busy="true">
-            <li>Loading timeline…</li>
+            <li data-i18n="loading_timeline">Loading timeline…</li>
           </ol>
         </section>
 
@@ -204,8 +261,8 @@
               </svg>
             </span>
             <div>
-              <h2 id="links-heading" class="card__title">Official resources</h2>
-              <p class="card__subtitle">Always the authoritative source for dates and deadlines.</p>
+              <h2 id="links-heading" class="card__title" data-i18n="links_title">Official resources</h2>
+              <p class="card__subtitle" data-i18n="links_subtitle">Always the authoritative source for dates and deadlines.</p>
             </div>
           </div>
           <ul class="links">
@@ -232,11 +289,11 @@
 
     <footer class="site-footer" role="contentinfo">
       <div class="site-footer__inner">
-        <p>
+        <p data-i18n="footer_main">
           <strong>VoteWise India</strong> · Educational information based on publicly available ECI rules. For authoritative details, always refer to
           <a href="https://www.eci.gov.in" target="_blank" rel="noopener noreferrer">eci.gov.in</a>.
         </p>
-        <p>Built with Gemini on Google Cloud Run.</p>
+        <p data-i18n="footer_built">Built with Gemini, Google Search grounding, Cloud Translation and Cloud TTS on Google Cloud Run.</p>
       </div>
     </footer>
 

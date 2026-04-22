@@ -984,3 +984,244 @@ input[type="number"]:focus {
   color: var(--c-text);
   font-weight: 600;
 }
+
+/* -------------------------------------------------------------
+ * Language selector + header top row
+ * ----------------------------------------------------------- */
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.lang-select {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 6px 10px 6px 12px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-full);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-xs);
+  color: var(--c-text-muted);
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.lang-select:focus-within {
+  border-color: var(--c-primary);
+  color: var(--c-primary-700);
+}
+
+.lang-select svg {
+  width: 18px; height: 18px;
+}
+
+.lang-select select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  padding-right: 14px;
+  cursor: pointer;
+  outline: none;
+}
+
+.lang-select select:focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.ground-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--c-text-muted);
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  background: var(--c-surface-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ground-toggle input {
+  accent-color: var(--c-primary);
+}
+
+/* -------------------------------------------------------------
+ * Mic button (inside chat field) + generic icon buttons
+ * ----------------------------------------------------------- */
+.icon-btn {
+  --size: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: var(--size);
+  height: var(--size);
+  padding: 0;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-full);
+  background: var(--c-surface);
+  color: var(--c-text-muted);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease),
+              border-color var(--dur) var(--ease),
+              color var(--dur) var(--ease),
+              background var(--dur) var(--ease);
+}
+
+.icon-btn:hover {
+  border-color: var(--c-primary);
+  color: var(--c-primary);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 2px;
+}
+
+.icon-btn svg {
+  width: 18px; height: 18px;
+}
+
+.icon-btn.is-active {
+  background: var(--c-primary);
+  color: var(--c-on-primary);
+  border-color: var(--c-primary);
+  animation: pulse 1.4s var(--ease) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(79, 70, 229, 0); }
+}
+
+.icon-btn--mic {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+}
+
+.chat-field {
+  position: relative;
+}
+
+.chat-field textarea {
+  padding-right: 52px; /* room for mic button */
+}
+
+/* Read-aloud button sits under assistant messages */
+.msg-actions {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.icon-btn--listen {
+  width: auto;
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+/* -------------------------------------------------------------
+ * Citations under assistant replies
+ * ----------------------------------------------------------- */
+.citations {
+  margin-top: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--c-primary-50);
+  border: 1px solid var(--c-primary-100);
+}
+
+.citations__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-primary-700);
+  margin-bottom: 4px;
+}
+
+.citations__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.citations__list a {
+  font-size: 0.86rem;
+  color: var(--c-primary-700);
+  text-decoration: none;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.citations__list a:hover,
+.citations__list a:focus-visible {
+  text-decoration: underline;
+}
+
+/* -------------------------------------------------------------
+ * Booth-lookup card form
+ * ----------------------------------------------------------- */
+.booth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.booth-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font: inherit;
+  outline: none;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.booth-form select:focus-visible {
+  border-color: var(--c-primary);
+  outline: 2px solid var(--c-focus);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------
+ * RTL for Urdu
+ * ----------------------------------------------------------- */
+[dir="rtl"] .chat-form__actions { flex-direction: row-reverse; }
+[dir="rtl"] .icon-btn--mic { right: auto; left: 10px; }
+[dir="rtl"] .chat-field textarea { padding-right: 14px; padding-left: 52px; }
+[dir="rtl"] .header-top { flex-direction: row-reverse; }
+
+@media (max-width: 640px) {
+  .header-top {
+    gap: var(--sp-3);
+  }
+  .ground-toggle {
+    font-size: 0.78rem;
+  }
+}

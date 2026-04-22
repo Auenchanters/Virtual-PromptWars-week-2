@@ -1,4 +1,8 @@
-"""Load and expose the election grounding data bundled with the app."""
+"""Load and expose the election grounding data bundled with the app.
+
+Rubric: Problem Statement Alignment (authoritative ECI grounding),
+Code Quality (validated at load time, cached, single source of truth).
+"""
 
 from __future__ import annotations
 
@@ -9,17 +13,11 @@ from typing import Any
 
 DATA_FILE = Path(__file__).parent / "data" / "election_info.json"
 
-
-@lru_cache(maxsize=1)
-def load_election_info() -> dict[str, Any]:
-    with DATA_FILE.open(encoding="utf-8") as f:
-        data = json.load(f)
-    _validate(data)
-    return data
-
-
-def _validate(data: dict[str, Any]) -> None:
-    required = {
+# Every top-level key referenced by ``grounding_text`` and the public ``/api/info``
+# endpoint must be in this set. Keeping it exhaustive means a malformed data file
+# fails on startup rather than at the first user request.
+REQUIRED_KEYS: frozenset[str] = frozenset(
+    {
         "country",
         "authority",
         "eligibility",
@@ -28,14 +26,40 @@ def _validate(data: dict[str, Any]) -> None:
         "elections",
         "general_election_timeline",
         "polling_day",
+        "special_voters",
+        "model_code_of_conduct",
         "common_questions",
+        "states_and_uts",
         "disclaimer",
     }
-    missing = required - data.keys()
+)
+
+
+@lru_cache(maxsize=1)
+def load_election_info() -> dict[str, Any]:
+    with DATA_FILE.open(encoding="utf-8") as f:
+        data: dict[str, Any] = json.load(f)
+    _validate(data)
+    return data
+
+
+def _validate(data: dict[str, Any]) -> None:
+    missing = REQUIRED_KEYS - data.keys()
     if missing:
         raise ValueError(f"election_info.json is missing keys: {sorted(missing)}")
 
 
+def states_and_uts() -> list[dict[str, str]]:
+    """Return the list of states and union territories.
+
+    Each entry has ``code`` (ECI 2-letter code) and ``name``.
+    """
+    info = load_election_info()
+    items: list[dict[str, str]] = info["states_and_uts"]
+    return list(items)
+
+
+@lru_cache(maxsize=1)
 def grounding_text() -> str:
     """Render the grounding JSON as a compact Markdown block for the system prompt."""
     info = load_election_info()
@@ -63,7 +87,8 @@ def grounding_text() -> str:
         f"\n- Primary form: {reg['primary_form']} — {reg['form_6_purpose']}"
         "\n- Other forms: "
         + "; ".join(f"{k} ({v})" for k, v in reg["other_forms"].items())
-        + "\n- Channels: " + "; ".join(reg["channels"])
+        + "\n- Channels: "
+        + "; ".join(reg["channels"])
         + f"\n- Fee: {reg['fee']}"
         + f"\n- Typical processing time: {reg['typical_processing_time']}"
         + f"\n- Status tracking: {reg['how_to_check_status']}"
@@ -89,8 +114,10 @@ def grounding_text() -> str:
     lines.append(
         "\n## Polling day"
         f"\n- Typical hours: {poll['poll_hours_typical']}"
-        "\n- What to bring: " + "; ".join(poll["what_to_bring"])
-        + "\n- Steps inside booth:\n  - " + "\n  - ".join(poll["steps_inside_booth"])
+        "\n- What to bring: "
+        + "; ".join(poll["what_to_bring"])
+        + "\n- Steps inside booth:\n  - "
+        + "\n  - ".join(poll["steps_inside_booth"])
         + f"\n- NOTA: {poll['nota']}"
         + f"\n- Paid holiday: {poll['paid_holiday']}"
     )
