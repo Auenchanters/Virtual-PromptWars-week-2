@@ -19,7 +19,7 @@ from app.grounding import grounding_text
 
 logger = logging.getLogger("votewise.chat")
 
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-001")
+MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 MAX_HISTORY_TURNS = 12
 MAX_OUTPUT_TOKENS = 1024
 TEMPERATURE = 0.3
