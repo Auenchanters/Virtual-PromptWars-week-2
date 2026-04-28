@@ -32,6 +32,30 @@ const boothSelect = $("#booth-state");
 const langPicker = $("#lang-picker");
 const micBtn = $("#mic-btn");
 const groundToggle = $("#ground-toggle");
+const useLocationBtn = $("#use-location-btn");
+const boothResults = $("#booth-results");
+const boothStatus = $("#booth-status");
+
+/* ------------------------------------------------------------------
+ * a11y: single sr-only live region used for status announcements
+ * (language change, chat cleared, mic state). aria-live="polite" so
+ * screen readers wait for natural speech pauses before announcing.
+ * ---------------------------------------------------------------- */
+function announce(message) {
+  if (!message) return;
+  let region = document.getElementById("a11y-announce");
+  if (!region) {
+    region = document.createElement("div");
+    region.id = "a11y-announce";
+    region.className = "sr-only";
+    region.setAttribute("aria-live", "polite");
+    region.setAttribute("aria-atomic", "true");
+    document.body.appendChild(region);
+  }
+  // Reset then write so AT picks up identical-text announcements too.
+  region.textContent = "";
+  setTimeout(() => { region.textContent = message; }, 30);
+}
 
 const history = [];
 let isSending = false;
@@ -325,7 +349,9 @@ function addActionsBar(bubbleTextEl, fullText, lang) {
     if (!plain.trim()) return;
     isSpeaking = true;
     listenBtn.classList.add("is-active");
-    listenBtn.innerHTML = `${STOP_SVG}<span>${escapeHtml(t("btn_listen", "Read aloud"))}</span>`;
+    listenBtn.setAttribute("aria-label", t("btn_stop_reading", "Stop reading"));
+    listenBtn.setAttribute("aria-pressed", "true");
+    listenBtn.innerHTML = `${STOP_SVG}<span>${escapeHtml(t("btn_stop_reading", "Stop reading"))}</span>`;
     try {
       if (await speakWithBrowser(plain, lang)) return;
       await speakWithServer(plain, lang);
@@ -334,6 +360,8 @@ function addActionsBar(bubbleTextEl, fullText, lang) {
     } finally {
       isSpeaking = false;
       listenBtn.classList.remove("is-active");
+      listenBtn.setAttribute("aria-label", t("btn_listen", "Read aloud"));
+      listenBtn.setAttribute("aria-pressed", "false");
       listenBtn.innerHTML = `${SPEAK_SVG}<span>${escapeHtml(t("btn_listen", "Read aloud"))}</span>`;
     }
   }
@@ -346,6 +374,8 @@ function addActionsBar(bubbleTextEl, fullText, lang) {
     }
     isSpeaking = false;
     listenBtn.classList.remove("is-active");
+    listenBtn.setAttribute("aria-label", t("btn_listen", "Read aloud"));
+    listenBtn.setAttribute("aria-pressed", "false");
     listenBtn.innerHTML = `${SPEAK_SVG}<span>${escapeHtml(t("btn_listen", "Read aloud"))}</span>`;
   }
 
@@ -586,6 +616,7 @@ resetBtn.addEventListener("click", () => {
   history.length = 0;
   renderWelcome();
   clearError();
+  announce(t("chat_cleared", "Chat history cleared"));
   chatInput.focus();
 });
 
@@ -594,13 +625,16 @@ document.querySelectorAll(".chip[data-prompt]").forEach((chip) => {
     const key = chip.dataset.promptKey;
     const translated = key && strings[key] ? strings[key] : chip.dataset.prompt;
     sendMessage(translated);
+    chatInput.focus();
   });
 });
 
 langPicker.addEventListener("change", async () => {
+  const selectedLabel = langPicker.options[langPicker.selectedIndex]?.text || langPicker.value;
   await loadLanguage(langPicker.value);
   renderWelcome();
   loadTimeline();
+  announce(`${t("lang_changed_to", "Language changed")}: ${selectedLabel}`);
 });
 
 /* ------------------------------------------------------------------
@@ -667,6 +701,93 @@ boothForm.addEventListener("submit", (e) => {
 });
 
 /* ------------------------------------------------------------------
+ * Booth locator via Google Maps Platform / Places API (New).
+ * Opt-in: the user must click the button and grant geolocation.
+ * Falls back gracefully when geolocation is denied or unsupported.
+ * ---------------------------------------------------------------- */
+function showBoothStatus(message) {
+  if (!boothStatus) return;
+  boothStatus.textContent = message;
+  boothStatus.hidden = false;
+}
+
+function clearBoothStatus() {
+  if (!boothStatus) return;
+  boothStatus.textContent = "";
+  boothStatus.hidden = true;
+}
+
+function renderBoothResults(results) {
+  if (!boothResults) return;
+  boothResults.innerHTML = "";
+  if (!Array.isArray(results) || results.length === 0) {
+    boothResults.hidden = true;
+    showBoothStatus(t("booth_no_results", "No polling stations found nearby."));
+    return;
+  }
+  for (const r of results) {
+    const li = document.createElement("li");
+    li.className = "booth-result";
+    const name = document.createElement("strong");
+    name.textContent = r.name;
+    const addr = document.createElement("span");
+    addr.className = "booth-result__addr";
+    addr.textContent = r.address;
+    const dist = document.createElement("span");
+    dist.className = "booth-result__dist";
+    dist.textContent = `${r.distance_m} ${t("booth_distance_meters", "metres away")}`;
+    li.appendChild(name);
+    li.appendChild(document.createElement("br"));
+    li.appendChild(addr);
+    li.appendChild(document.createElement("br"));
+    li.appendChild(dist);
+    boothResults.appendChild(li);
+  }
+  boothResults.hidden = false;
+  clearBoothStatus();
+}
+
+async function fetchBooths(lat, lng) {
+  const res = await fetch("/api/places/booth", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lat, lng, radius_m: 3000 }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return data.results || [];
+}
+
+if (useLocationBtn) {
+  useLocationBtn.addEventListener("click", () => {
+    if (!("geolocation" in navigator)) {
+      showBoothStatus(
+        t("booth_geolocation_unsupported", "Your browser does not expose location access.")
+      );
+      return;
+    }
+    showBoothStatus(t("booth_locating", "Finding nearby polling stations…"));
+    boothResults.hidden = true;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const results = await fetchBooths(pos.coords.latitude, pos.coords.longitude);
+          renderBoothResults(results);
+        } catch {
+          showBoothStatus(t("error_unavailable", "Booth lookup is temporarily unavailable."));
+        }
+      },
+      () => {
+        showBoothStatus(
+          t("booth_geolocation_denied", "Location access was denied. Use the state search below.")
+        );
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 }
+    );
+  });
+}
+
+/* ------------------------------------------------------------------
  * Timeline (loaded from /api/info)
  * ---------------------------------------------------------------- */
 async function loadTimeline() {
@@ -713,6 +834,8 @@ function setupMic() {
     recognizer.onstart = () => {
       active = true;
       micBtn.classList.add("is-active");
+      micBtn.setAttribute("aria-label", t("btn_mic_stop", "Stop recording"));
+      micBtn.setAttribute("aria-pressed", "true");
     };
     recognizer.onresult = (e) => {
       let txt = "";
@@ -725,10 +848,14 @@ function setupMic() {
     recognizer.onerror = () => {
       active = false;
       micBtn.classList.remove("is-active");
+      micBtn.setAttribute("aria-label", t("btn_mic", "Speak your question"));
+      micBtn.setAttribute("aria-pressed", "false");
     };
     recognizer.onend = () => {
       active = false;
       micBtn.classList.remove("is-active");
+      micBtn.setAttribute("aria-label", t("btn_mic", "Speak your question"));
+      micBtn.setAttribute("aria-pressed", "false");
     };
     recognizer.start();
   });

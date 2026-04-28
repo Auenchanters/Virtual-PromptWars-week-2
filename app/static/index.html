@@ -31,12 +31,12 @@
           </div>
           <div class="header-controls">
             <label class="lang-select">
-              <span class="sr-only" data-i18n="lang_label">Language</span>
+              <span id="lang-picker-label" class="sr-only" data-i18n="lang_label">Language</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="9" />
                 <path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18" />
               </svg>
-              <select id="lang-picker" aria-label="Language">
+              <select id="lang-picker" aria-labelledby="lang-picker-label">
                 <option value="en">English</option>
               </select>
             </label>
@@ -50,10 +50,10 @@
           <span class="pill"><span class="pill__dot" aria-hidden="true"></span><span data-i18n="pill_powered_by">Powered by Gemini</span></span>
           <span class="pill" data-i18n="pill_grounded">Grounded in ECI rules</span>
           <span class="pill" data-i18n="pill_nonpartisan">Non-partisan</span>
-          <label class="ground-toggle">
+          <span class="ground-toggle">
             <input type="checkbox" id="ground-toggle" checked />
-            <span data-i18n="ground_live">Use live ECI sources</span>
-          </label>
+            <label for="ground-toggle" data-i18n="ground_live">Use live ECI sources</label>
+          </span>
         </div>
       </div>
     </header>
@@ -140,7 +140,7 @@
           </div>
 
           <div class="chat-form__actions">
-            <span id="chat-hint" class="chat-form__hint" data-i18n="hint">Answers are grounded in Election Commission of India rules.</span>
+            <span id="chat-hint" class="chat-form__hint" data-i18n="hint">Answers are grounded in Election Commission of India rules. Maximum 1000 characters.</span>
             <div class="chat-form__buttons">
               <button type="button" id="reset-btn" class="btn btn--ghost" data-i18n="btn_clear">Clear</button>
               <button type="submit" id="send-btn" class="btn btn--primary">
@@ -169,7 +169,7 @@
             </div>
           </div>
 
-          <form id="eligibility-form" class="eligibility-form" novalidate>
+          <form id="eligibility-form" class="eligibility-form" novalidate aria-labelledby="eligibility-heading">
             <div class="field">
               <label for="age" class="field__label" data-i18n="field_age">Your age (years)</label>
               <input
@@ -223,7 +223,12 @@
             </div>
           </div>
 
-          <form id="booth-form" class="booth-form" novalidate>
+          <form id="booth-form" class="booth-form" novalidate aria-labelledby="booth-heading">
+            <button type="button" id="use-location-btn" class="btn btn--ghost btn--full" data-i18n="btn_use_location">
+              Use my location
+            </button>
+            <ul id="booth-results" class="booth-results" aria-live="polite" aria-relevant="additions" hidden></ul>
+            <p id="booth-status" class="booth-status" role="status" aria-live="polite" hidden></p>
             <div class="field">
               <label for="booth-state" class="field__label" data-i18n="booth_label">Your state / UT</label>
               <select id="booth-state" required>

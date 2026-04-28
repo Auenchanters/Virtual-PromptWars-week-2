@@ -4,8 +4,15 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from app.main import _get_translator, app, get_gemini_client, rate_limiter
-from tests.conftest import FakeTranslator
+from app.main import (
+    _get_analytics,
+    _get_redactor,
+    _get_translator,
+    app,
+    get_gemini_client,
+    rate_limiter,
+)
+from tests.conftest import FakeAnalytics, FakeRedactor, FakeTranslator
 
 
 def test_health(client: TestClient) -> None:
@@ -101,6 +108,8 @@ def test_chat_rate_limit_sets_retry_after(client: TestClient) -> None:
 def test_chat_returns_503_when_gemini_fails(failing_client_factory) -> None:
     app.dependency_overrides[get_gemini_client] = failing_client_factory(RuntimeError("boom"))
     app.dependency_overrides[_get_translator] = FakeTranslator
+    app.dependency_overrides[_get_analytics] = FakeAnalytics
+    app.dependency_overrides[_get_redactor] = FakeRedactor
     rate_limiter.reset()
     try:
         with TestClient(app) as tc:
@@ -118,3 +127,128 @@ def test_chat_returns_citations_when_grounding(client: TestClient, fake_client) 
     assert r.status_code == 200
     citations = r.json()["citations"]
     assert citations[0]["uri"] == "https://eci.gov.in/x"
+
+
+# --------------------------------------------------------------------------- #
+# Failure-path coverage for input/output translation fallbacks in /api/chat.
+# --------------------------------------------------------------------------- #
+
+
+class _InputFailingTranslator:
+    """Raises on input direction (target=='en'); succeeds for output."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, str | None]] = []
+
+    def translate(self, text: str, target: str, source: str | None = None) -> str:
+        self.calls.append((text, target, source))
+        if target == "en":
+            raise RuntimeError("input translate down")
+        return f"[{target}] {text}"
+
+
+class _OutputFailingTranslator:
+    """Succeeds on input direction; raises when localising the reply."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, str | None]] = []
+
+    def translate(self, text: str, target: str, source: str | None = None) -> str:
+        self.calls.append((text, target, source))
+        if target == "en":
+            return f"[en] {text}"
+        raise RuntimeError("output translate down")
+
+
+def test_chat_input_translation_fallback_uses_original_message() -> None:
+    """When input translation fails, the user's original (non-English) text reaches Gemini."""
+    from tests.conftest import FakeAnalytics, FakeGeminiClient, FakeRedactor
+
+    failing_translator = _InputFailingTranslator()
+    fake_gemini = FakeGeminiClient(reply="Reply in English")
+
+    app.dependency_overrides[get_gemini_client] = lambda: fake_gemini
+    app.dependency_overrides[_get_translator] = lambda: failing_translator
+    app.dependency_overrides[_get_analytics] = FakeAnalytics
+    app.dependency_overrides[_get_redactor] = FakeRedactor
+    rate_limiter.reset()
+    try:
+        with TestClient(app) as tc:
+            r = tc.post(
+                "/api/chat",
+                json={
+                    "history": [],
+                    "message": "मतदाता पंजीकरण कैसे करें?",
+                    "target_language": "hi",
+                },
+            )
+            assert r.status_code == 200
+            # The Gemini call's last user turn must be the ORIGINAL Hindi message.
+            assert fake_gemini.calls[0][-1].text == "मतदाता पंजीकरण कैसे करें?"
+            # Output translation still happened.
+            assert r.json()["reply"].startswith("[hi] ")
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_chat_output_translation_fallback_returns_english_reply() -> None:
+    """Output-translation failure: reply is English, ``language`` still echoes target."""
+    from tests.conftest import FakeAnalytics, FakeGeminiClient, FakeRedactor
+
+    failing_translator = _OutputFailingTranslator()
+    fake_gemini = FakeGeminiClient(reply="Use Form 6 to register.")
+
+    app.dependency_overrides[get_gemini_client] = lambda: fake_gemini
+    app.dependency_overrides[_get_translator] = lambda: failing_translator
+    app.dependency_overrides[_get_analytics] = FakeAnalytics
+    app.dependency_overrides[_get_redactor] = FakeRedactor
+    rate_limiter.reset()
+    try:
+        with TestClient(app) as tc:
+            r = tc.post(
+                "/api/chat",
+                json={"history": [], "message": "hello", "target_language": "ta"},
+            )
+            assert r.status_code == 200
+            body = r.json()
+            # Output translation failed → reply is the English text untouched.
+            assert body["reply"] == "Use Form 6 to register."
+            assert body["language"] == "ta"
+            assert body["reply_en"] == "Use Form 6 to register."
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_chat_records_analytics_via_background_task(client: TestClient, fake_analytics) -> None:
+    """Successful /api/chat must enqueue exactly one BigQuery row via BackgroundTasks."""
+    r = client.post(
+        "/api/chat",
+        json={"history": [], "message": "How do I register to vote?"},
+    )
+    assert r.status_code == 200
+    # TestClient runs background tasks before returning, so the row must be present.
+    assert len(fake_analytics.rows) == 1
+    row = fake_analytics.rows[0]
+    assert row["language"] == "en"
+    assert row["topic"] == "registration"  # rule-based classifier matched "register"
+    assert row["latency_ms"] >= 0
+    assert row["used_grounding"] is True
+
+
+def test_chat_redacts_pii_before_topic_classification(
+    client: TestClient, fake_redactor, fake_analytics
+) -> None:
+    """User PII must be redacted before being passed to classify_topic / BigQuery."""
+    r = client.post(
+        "/api/chat",
+        json={
+            "history": [],
+            "message": "My phone is 9876543210, please register me to vote.",
+        },
+    )
+    assert r.status_code == 200
+    # Redactor must have been called with the raw user message.
+    assert fake_redactor.calls
+    assert "9876543210" in fake_redactor.calls[0]
+    # The classifier still picked "registration" from the redacted text.
+    assert fake_analytics.rows[0]["topic"] == "registration"

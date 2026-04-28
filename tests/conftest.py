@@ -4,12 +4,16 @@ Keeps the test suite fully offline:
 - Gemini → FakeGeminiClient (generate + stream)
 - Cloud Translation → FakeTranslator
 - Cloud Text-to-Speech → FakeSpeaker
+- BigQuery → FakeAnalytics
+- Cloud DLP → FakeRedactor
+- Maps Platform Places API → FakePlaces
 
 Every external dependency is swapped via FastAPI's ``app.dependency_overrides``.
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Iterator
 from typing import Any
 
@@ -18,6 +22,9 @@ from fastapi.testclient import TestClient
 
 from app.chat import ChatChunk, ChatMessage, ChatResult, Citation, GeminiClient
 from app.main import (
+    _get_analytics,
+    _get_places,
+    _get_redactor,
     _get_speaker,
     _get_translator,
     app,
@@ -26,6 +33,7 @@ from app.main import (
     translate_limiter,
     tts_limiter,
 )
+from app.places import BoothPlace
 
 # --------------------------------------------------------------------------- #
 # Fakes
@@ -54,7 +62,6 @@ class FakeGeminiClient:
     def stream(self, history: list[ChatMessage], use_grounding: bool = True) -> Iterator[ChatChunk]:
         self.stream_calls.append(list(history))
         self.last_use_grounding = use_grounding
-        # Yield the reply word-by-word so tests exercise multi-chunk streaming.
         words = self.reply.split(" ")
         for i, word in enumerate(words):
             piece = word if i == 0 else " " + word
@@ -88,6 +95,77 @@ class FakeSpeaker:
         return self.FAKE_AUDIO
 
 
+class FakeAnalytics:
+    """Captures every chat-turn log so tests can assert on them."""
+
+    def __init__(self) -> None:
+        self.rows: list[dict[str, Any]] = []
+        self.raise_on_log: Exception | None = None
+
+    def log_chat_turn(
+        self,
+        language: str,
+        topic: str,
+        latency_ms: int,
+        used_grounding: bool,
+        citation_count: int,
+    ) -> None:
+        if self.raise_on_log is not None:
+            raise self.raise_on_log
+        self.rows.append(
+            {
+                "language": language,
+                "topic": topic,
+                "latency_ms": latency_ms,
+                "used_grounding": used_grounding,
+                "citation_count": citation_count,
+            }
+        )
+
+
+class FakeRedactor:
+    """Regex stand-in for Cloud DLP — replaces phone/email/aadhaar with [REDACTED:<TYPE>]."""
+
+    PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+        ("EMAIL_ADDRESS", re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")),
+        ("INDIA_AADHAAR_NUMBER", re.compile(r"\b\d{4}\s?\d{4}\s?\d{4}\b")),
+        ("PHONE_NUMBER", re.compile(r"\b(?:\+?91[-\s]?)?[6-9]\d{9}\b")),
+    )
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+        self.raise_on_redact: Exception | None = None
+
+    def redact(self, text: str) -> str:
+        self.calls.append(text)
+        if self.raise_on_redact is not None:
+            raise self.raise_on_redact
+        out = text
+        for label, pat in self.PATTERNS:
+            out = pat.sub(f"[REDACTED:{label}]", out)
+        return out
+
+
+class FakePlaces:
+    """Returns a canned list of booths so tests don't call the real Places API."""
+
+    DEFAULT = (
+        BoothPlace("Govt High School Booth", "MG Road, Bengaluru", 320, 12.9716, 77.5946),
+        BoothPlace("Polling Station 42", "1st Cross, Indiranagar", 870, 12.9784, 77.6408),
+    )
+
+    def __init__(self, results: tuple[BoothPlace, ...] = DEFAULT) -> None:
+        self.results = results
+        self.calls: list[tuple[float, float, int]] = []
+        self.raise_on_search: Exception | None = None
+
+    def nearby_booths(self, lat: float, lng: float, radius_m: int) -> list[BoothPlace]:
+        self.calls.append((lat, lng, radius_m))
+        if self.raise_on_search is not None:
+            raise self.raise_on_search
+        return list(self.results)
+
+
 # --------------------------------------------------------------------------- #
 # Fixtures
 # --------------------------------------------------------------------------- #
@@ -115,10 +193,28 @@ def fake_speaker() -> FakeSpeaker:
 
 
 @pytest.fixture
+def fake_analytics() -> FakeAnalytics:
+    return FakeAnalytics()
+
+
+@pytest.fixture
+def fake_redactor() -> FakeRedactor:
+    return FakeRedactor()
+
+
+@pytest.fixture
+def fake_places() -> FakePlaces:
+    return FakePlaces()
+
+
+@pytest.fixture
 def client(
     fake_client: FakeGeminiClient,
     fake_translator: FakeTranslator,
     fake_speaker: FakeSpeaker,
+    fake_analytics: FakeAnalytics,
+    fake_redactor: FakeRedactor,
+    fake_places: FakePlaces,
 ) -> Iterator[TestClient]:
     def _gemini() -> GeminiClient:
         return fake_client
@@ -129,9 +225,21 @@ def client(
     def _speaker() -> Any:
         return fake_speaker
 
+    def _analytics() -> Any:
+        return fake_analytics
+
+    def _redactor() -> Any:
+        return fake_redactor
+
+    def _places() -> Any:
+        return fake_places
+
     app.dependency_overrides[get_gemini_client] = _gemini
     app.dependency_overrides[_get_translator] = _translator
     app.dependency_overrides[_get_speaker] = _speaker
+    app.dependency_overrides[_get_analytics] = _analytics
+    app.dependency_overrides[_get_redactor] = _redactor
+    app.dependency_overrides[_get_places] = _places
     _reset_limiters()
     try:
         with TestClient(app) as tc:

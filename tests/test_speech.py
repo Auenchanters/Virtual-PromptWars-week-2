@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app.main import _get_speaker, app, tts_limiter
+
 
 def test_tts_returns_mp3_bytes(client: TestClient, fake_speaker) -> None:
     r = client.post("/api/tts", json={"text": "Namaste", "lang": "hi"})
@@ -36,6 +38,25 @@ def test_speech_module_exports_voice_map() -> None:
     assert supported_for_tts("hi")
     assert not supported_for_tts("or")
     assert VOICE_BY_LANG["hi"].startswith("hi-IN")
+
+
+class _RaisingSpeaker:
+    """Speaker that always raises — used for the 503 fallback test."""
+
+    def synthesize(self, text: str, lang: str) -> bytes:
+        raise RuntimeError("tts api down")
+
+
+def test_tts_returns_503_when_synthesis_fails() -> None:
+    app.dependency_overrides[_get_speaker] = lambda: _RaisingSpeaker()
+    tts_limiter.reset()
+    try:
+        with TestClient(app) as tc:
+            r = tc.post("/api/tts", json={"text": "Namaste", "lang": "hi"})
+            assert r.status_code == 503
+            assert "Text-to-speech is temporarily unavailable" in r.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()
 
 
 def test_cloud_speaker_caches_and_truncates() -> None:

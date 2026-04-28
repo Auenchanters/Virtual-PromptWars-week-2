@@ -41,3 +41,18 @@ def test_reset_clears_state() -> None:
 
 def test_max_requests_property() -> None:
     assert RateLimiter(42, 60).max_requests == 42
+
+
+def test_retry_after_is_within_window() -> None:
+    """When blocked, retry_after must be in (0, window_seconds]."""
+    window = 10
+    lim = RateLimiter(2, window)
+    assert lim.check("a") == (True, 0)
+    assert lim.check("a") == (True, 0)
+    allowed, retry = lim.check("a")
+    assert allowed is False
+    assert 1 <= retry <= window + 1
+
+
+def test_window_seconds_property() -> None:
+    assert RateLimiter(1, 90).window_seconds == 90

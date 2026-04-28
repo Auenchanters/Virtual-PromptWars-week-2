@@ -1225,3 +1225,46 @@ input[type="number"]:focus {
     font-size: 0.78rem;
   }
 }
+
+/* --- Booth locator (Maps Platform Places API) ----------------- */
+.btn--full {
+  width: 100%;
+  justify-content: center;
+}
+
+.booth-results {
+  list-style: none;
+  margin: 0 0 var(--sp-3) 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.booth-result {
+  background: var(--c-surface-alt, rgba(79, 70, 229, 0.06));
+  border: 1px solid var(--c-border, rgba(0, 0, 0, 0.08));
+  border-radius: 8px;
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.booth-result__addr {
+  color: var(--c-muted, #555);
+  font-size: 0.85rem;
+}
+
+.booth-result__dist {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--c-primary, #4f46e5);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.booth-status {
+  margin: 0 0 var(--sp-2) 0;
+  font-size: 0.85rem;
+  color: var(--c-muted, #555);
+}

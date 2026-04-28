@@ -43,7 +43,7 @@ jobs:
         run: mypy app
 
       - name: Pytest with coverage
-        run: pytest --cov=app --cov-report=term-missing --cov-report=xml
+        run: pytest --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=85
 
       - name: Repo size guard (<10 MB tracked)
         run: |

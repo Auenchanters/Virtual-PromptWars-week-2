@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
+
+from app.main import _get_translator, app, translate_limiter
+from app.translation import SUPPORTED_CODES
 
 
 def test_translate_endpoint_happy_path(client: TestClient, fake_translator) -> None:
@@ -133,3 +137,62 @@ def test_lru_cache_evicts_oldest() -> None:
     assert len(c) == 2
     c.clear()
     assert len(c) == 0
+
+
+# --------------------------------------------------------------------------- #
+# Failure-path coverage — these exercise the ``except Exception`` branches
+# in app/routers/translate.py and app/routers/info.py that previously had no
+# automated coverage.
+# --------------------------------------------------------------------------- #
+
+
+class _RaisingTranslator:
+    """Translator that always raises — used for fallback-path tests."""
+
+    def translate(self, text: str, target: str, source: str | None = None) -> str:
+        raise RuntimeError("translation api down")
+
+
+def test_translate_endpoint_returns_503_on_translator_failure() -> None:
+    app.dependency_overrides[_get_translator] = lambda: _RaisingTranslator()
+    translate_limiter.reset()
+    try:
+        with TestClient(app) as tc:
+            r = tc.post("/api/translate", json={"text": "hi", "target": "hi", "source": "en"})
+            assert r.status_code == 503
+            assert "Translation is temporarily unavailable" in r.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_i18n_endpoint_falls_back_to_english_when_translator_fails() -> None:
+    app.dependency_overrides[_get_translator] = lambda: _RaisingTranslator()
+    translate_limiter.reset()
+    try:
+        with TestClient(app) as tc:
+            r = tc.get("/api/i18n/hi")
+            assert r.status_code == 200
+            body = r.json()
+            assert body["lang"] == "en"
+            assert body["fallback"] is True
+            assert "welcome" in body["strings"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize("lang", sorted(SUPPORTED_CODES - {"en"}))
+def test_i18n_endpoint_returns_complete_bundle_for_every_supported_language(
+    client: TestClient, lang: str
+) -> None:
+    """Every one of the 12 non-English Indian languages must return a full bundle."""
+    r = client.get(f"/api/i18n/{lang}")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["lang"] == lang
+    assert body.get("fallback") is None
+    # The English bundle has its full set of keys; the translation must preserve them all.
+    en_bundle = client.get("/api/i18n/en").json()["strings"]
+    assert set(body["strings"].keys()) == set(en_bundle.keys())
+    # Each value should have been pushed through the FakeTranslator: ``[<lang>] <english>``.
+    for key, value in body["strings"].items():
+        assert value == f"[{lang}] {en_bundle[key]}", key
