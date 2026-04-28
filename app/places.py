@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import logging
 import math
-import os
 from typing import Any, Protocol
 
 import httpx
@@ -114,14 +113,24 @@ _places_singleton: PlacesClient | None = None
 
 
 def get_places_client() -> PlacesClient:
-    """Process-wide singleton; raises if ``GOOGLE_MAPS_API_KEY`` is not set."""
+    """Process-wide singleton.
+
+    Resolves ``GOOGLE_MAPS_API_KEY`` via :func:`app.secrets.resolve_secret`,
+    which checks the env var first (Cloud Run ``--set-secrets`` path) then
+    falls back to a direct Secret Manager API call. Raises if neither
+    surfaces a value.
+    """
     global _places_singleton
     if _places_singleton is None:
-        api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-        if not api_key:
+        from app.secrets import resolve_secret  # local import — keeps this module small
+
+        try:
+            api_key = resolve_secret("GOOGLE_MAPS_API_KEY")
+        except (RuntimeError, ValueError, KeyError) as exc:
             raise RuntimeError(
-                "GOOGLE_MAPS_API_KEY is not set. On Cloud Run this should come from Secret Manager."
-            )
+                "GOOGLE_MAPS_API_KEY is not set. On Cloud Run this should come from "
+                "Secret Manager (--set-secrets) or be readable via the Secret Manager API."
+            ) from exc
         _places_singleton = RealPlacesClient(api_key=api_key)
     return _places_singleton
 

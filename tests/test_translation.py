@@ -139,6 +139,36 @@ def test_lru_cache_evicts_oldest() -> None:
     assert len(c) == 0
 
 
+def test_lru_cache_max_size_overflow_boundary() -> None:
+    """Translator LRU: at exactly max_size all keys remain; one extra evicts one."""
+    from app.translation import _LruCache
+
+    n = 3
+    c = _LruCache(max_size=n)
+    for i in range(n):
+        c.put((f"k{i}",), f"v{i}")
+    assert len(c) == n
+    for i in range(n):
+        assert c.get((f"k{i}",)) == f"v{i}"
+    c.put(("kN",), "vN")
+    assert len(c) == n
+    assert c.get(("k0",)) is None
+
+
+def test_lru_cache_recency_protects_recent_keys() -> None:
+    """A get() promotes the key; subsequent put() evicts the next-oldest, not it."""
+    from app.translation import _LruCache
+
+    c = _LruCache(max_size=2)
+    c.put(("old",), "1")
+    c.put(("new",), "2")
+    assert c.get(("old",)) == "1"  # promotes "old" to MRU
+    c.put(("third",), "3")
+    assert c.get(("new",)) is None  # "new" was LRU and got evicted
+    assert c.get(("old",)) == "1"
+    assert c.get(("third",)) == "3"
+
+
 # --------------------------------------------------------------------------- #
 # Failure-path coverage — these exercise the ``except Exception`` branches
 # in app/routers/translate.py and app/routers/info.py that previously had no

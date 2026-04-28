@@ -101,13 +101,19 @@ def test_real_places_client_rejects_empty_api_key() -> None:
 
 
 def test_get_places_client_raises_without_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.secrets import reset_secrets_for_tests
+
     reset_places_client_for_tests()
+    reset_secrets_for_tests()  # nuke any cached secret value
     monkeypatch.delenv("GOOGLE_MAPS_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_CLOUD_PROJECT", raising=False)
+    monkeypatch.delenv("GCP_PROJECT", raising=False)
     try:
         with pytest.raises(RuntimeError, match="GOOGLE_MAPS_API_KEY"):
             get_places_client()
     finally:
         reset_places_client_for_tests()
+        reset_secrets_for_tests()
 
 
 def test_get_places_client_returns_singleton(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -119,6 +125,22 @@ def test_get_places_client_returns_singleton(monkeypatch: pytest.MonkeyPatch) ->
         assert a is b
     finally:
         reset_places_client_for_tests()
+
+
+def test_get_places_client_falls_back_to_secret_manager(monkeypatch: pytest.MonkeyPatch) -> None:
+    """If the env var is missing but a Secret Manager fetcher is available, use it."""
+    from app.secrets import _fake_for_testing, reset_secrets_for_tests
+
+    reset_places_client_for_tests()
+    reset_secrets_for_tests(fetcher=_fake_for_testing({"GOOGLE_MAPS_API_KEY": "from-sm"}))
+    monkeypatch.delenv("GOOGLE_MAPS_API_KEY", raising=False)
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "unit-test-project")
+    try:
+        client = get_places_client()
+        assert client is not None  # constructed via Secret Manager path
+    finally:
+        reset_places_client_for_tests()
+        reset_secrets_for_tests()
 
 
 def test_real_places_client_parses_search_response_and_sorts() -> None:

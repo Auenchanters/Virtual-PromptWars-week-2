@@ -177,6 +177,37 @@ def _reset_limiters() -> None:
     tts_limiter.reset()
 
 
+@pytest.fixture(autouse=True)
+def _isolate_singletons_and_overrides() -> Iterator[None]:
+    """Test-order isolation guard.
+
+    Wipes every module-level singleton (translator, speaker, analytics,
+    redactor, places client) and every FastAPI dependency override before
+    AND after each test, so a test that injects state via `monkeypatch.setenv`
+    + `get_*()` cannot leak into the next test. Limiters are reset too.
+    """
+    from app.analytics import reset_analytics_for_tests
+    from app.dlp import reset_redactor_for_tests
+    from app.places import reset_places_client_for_tests
+    from app.speech import reset_speaker_for_tests
+    from app.translation import reset_translator_for_tests
+
+    def _reset_all() -> None:
+        reset_translator_for_tests()
+        reset_speaker_for_tests()
+        reset_analytics_for_tests()
+        reset_redactor_for_tests()
+        reset_places_client_for_tests()
+        _reset_limiters()
+        app.dependency_overrides.clear()
+
+    _reset_all()
+    try:
+        yield
+    finally:
+        _reset_all()
+
+
 @pytest.fixture
 def fake_client() -> FakeGeminiClient:
     return FakeGeminiClient()

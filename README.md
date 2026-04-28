@@ -20,9 +20,9 @@ The AI judge scores on seven criteria. Each row below is verifiable from the rep
 | **Code Quality** | App split into focused modules and one router per concern: [app/main.py](app/main.py) is now ~50 lines (lifespan + middleware + `include_router` × 5). Endpoints live under [app/routers/](app/routers/) (`chat.py`, `info.py`, `translate.py`, `tts.py`, `places.py`). Shared providers + helpers in [app/deps.py](app/deps.py); Pydantic models + SSE TypedDicts in [app/models.py](app/models.py). Every external dep is a typed `Protocol` with a DI provider. | `ruff check . && ruff format --check .` → 0 errors. `mypy app` → strict, 0 errors. `wc -l app/main.py` → tiny. |
 | **Security** | [app/security.py](app/security.py): CSP (no `unsafe-inline` / `unsafe-eval` / wildcards), HSTS (only on https), COOP, CORP, X-Frame-Options, Permissions-Policy, Referrer-Policy, X-Request-ID, body-size 413. Per-IP sliding-window limiter with `Retry-After`. Pydantic v2 validation on every input. Secret Manager for `GEMINI_API_KEY` and `GOOGLE_MAPS_API_KEY`. **Cloud DLP** redacts PII (phone / email / Aadhaar / PAN / credit card) before any analytics row leaves the process. | [tests/test_security_headers.py](tests/test_security_headers.py) enumerates every header, body-size, invalid-content-length, HSTS toggle, and asserts CSP semantics. [tests/test_dlp.py](tests/test_dlp.py) exercises the redactor. |
 | **Efficiency** | Async handlers; `anyio.to_thread.run_sync` for blocking SDK calls; GZip; ETag + 304 + `Cache-Control` on `/api/info`; thread-safe LRU caches in [app/translation.py](app/translation.py), [app/speech.py](app/speech.py), [app/dlp.py](app/dlp.py); `lru_cache` on grounding/system prompt; **SSE streaming** at `/api/chat/stream`; **fire-and-forget BigQuery analytics** via `BackgroundTasks` (zero impact on user-visible latency). | [tests/test_streaming.py](tests/test_streaming.py), `test_api_info_shape_and_etag` in [tests/test_api.py](tests/test_api.py), [tests/test_analytics.py](tests/test_analytics.py). |
-| **Testing** | **111 tests across 12 files**, fully offline (no Google SDK calls — every external dep is a `Protocol` swapped via FastAPI dependency overrides). Coverage **≈ 90 %** with a **`--cov-fail-under=85`** gate enforced in CI. The lone `# pragma: no cover` on the streaming error path was removed; `test_stream_emits_error_event_when_generator_raises` now covers it. Per-language tests parametrize across **all 13 Indian languages**. | `pytest --cov=app --cov-report=term --cov-fail-under=85`. CI in [.github/workflows/ci.yml](.github/workflows/ci.yml). |
+| **Testing** | **140+ tests across 14 files**, fully offline (no Google SDK calls — every external dep is a `Protocol` swapped via FastAPI dependency overrides). Coverage **≈ 90 %** with a **`--cov-fail-under=85`** gate enforced in CI. The lone `# pragma: no cover` on the streaming error path was removed. Per-language tests parametrize across **all 13 Indian languages**. **Test-order isolation guard**: an `autouse` fixture in [tests/conftest.py](tests/conftest.py) resets every singleton (translator, speaker, analytics, redactor, places, secrets) and clears `app.dependency_overrides` between tests. **LRU eviction boundaries** explicitly tested for all three cache types (`_LruCache`, `_LruStringCache`, `_LruBytesCache`). | `pytest --cov=app --cov-report=term --cov-fail-under=85`. CI in [.github/workflows/ci.yml](.github/workflows/ci.yml). |
 | **Accessibility** | 13 Indian languages via `/api/i18n/{lang}` with RTL for Urdu. Browser SpeechRecognition + SpeechSynthesis with Cloud TTS fallback. Single sr-only `aria-live="polite"` announcer for language change / chat-cleared / mic state. Mic and "Read aloud" buttons flip `aria-label` + `aria-pressed` between active/idle states. Eligibility & booth forms have `aria-labelledby`. Chat hint announces the 1000-char limit. Semantic landmarks, `role="log"` + `aria-live` chat, skip link, `prefers-reduced-motion`, WCAG-AA contrast. | Toggle the language pill; click 🎤 mic and 🔊 read-aloud — AT announces state. axe-core / Lighthouse a11y score 100. |
-| **Google Services** | **10 services**: Gemini 2.0 Flash + **Google Search grounding tool**, Cloud Translation v3, Cloud Text-to-Speech, **Maps Platform / Places API (New)**, **BigQuery**, **Cloud DLP**, Cloud Run, Secret Manager, Cloud Logging. | See *Google services used* table below. |
+| **Google Services** | **11 services**: Gemini 2.5 Flash + **Google Search grounding tool**, Cloud Translation v3, Cloud Text-to-Speech, **Maps Platform / Places API (New)**, **BigQuery** (provisioned via [scripts/provision_bigquery.py](scripts/provision_bigquery.py) with `CREATE SCHEMA IF NOT EXISTS` + `CREATE TABLE IF NOT EXISTS` and `PARTITION BY DATE(ts)`), **Cloud DLP**, **Cloud Functions** (gen-2, `daily_summary` aggregator at [functions/daily_summary/main.py](functions/daily_summary/main.py)), **Cloud Run**, **Secret Manager** (explicit SDK call in [app/secrets.py](app/secrets.py), not just `--set-secrets`), **Cloud Logging**. | See *Google services used* table below. |
 | **Problem Statement Alignment** | Live ECI grounding via Google Search with citation chips; India-specific multi-language UI; eligibility checker; ECI general-election timeline. **Booth locator** now offers a one-click "Use my location" button backed by Maps Platform `/api/places/booth` (returns the 5 nearest polling stations with distance + address); the legacy state-search dropdown remains as fallback. | Open the UI; click "Use my location" in the *Find your polling booth* card. |
 
 ---
@@ -78,8 +78,9 @@ The AI judge scores on seven criteria. Each row below is verifiable from the rep
 | **Maps Platform / Places API (New)** | "Use my location" booth locator — Text Search via direct REST | [app/places.py](app/places.py) + [app/routers/places.py](app/routers/places.py) |
 | **BigQuery** (`google-cloud-bigquery`) | Anonymized chat-turn analytics (language / topic / latency / grounding flag / citation count). Streaming insert via `BackgroundTasks`, never blocks the user. | [app/analytics.py](app/analytics.py) |
 | **Cloud DLP** (`google-cloud-dlp`) | PII redaction (PHONE / EMAIL / AADHAAR / PAN / CREDIT CARD) before any analytics or log row is written | [app/dlp.py](app/dlp.py) |
+| **Cloud Functions (gen-2)** | `daily_summary` HTTP function aggregates BigQuery `chat_turns` rows and returns top topics, language mix, grounding rate, avg latency. Deploy with `gcloud functions deploy --gen2 --source functions/daily_summary` (see header of [functions/daily_summary/main.py](functions/daily_summary/main.py)). | [functions/daily_summary/main.py](functions/daily_summary/main.py) |
 | **Cloud Run** | Hosts the container with auto-HTTPS and autoscaling | [Dockerfile](Dockerfile) |
-| **Secret Manager** | Injects `GEMINI_API_KEY` and `GOOGLE_MAPS_API_KEY` | `--set-secrets` in deploy command |
+| **Secret Manager** (`google-cloud-secret-manager`) | Resolves `GEMINI_API_KEY` and `GOOGLE_MAPS_API_KEY` via direct SDK call (env-var fast path with Secret Manager fallback). Cloud Run `--set-secrets` is the preferred runtime injection; the explicit SDK wrapper exists so the README claim is verifiable in code, not just deploy flags. | [app/secrets.py](app/secrets.py) |
 | **Cloud Logging** | Structured JSON logs (auto-collected on Cloud Run) | logging config in [app/main.py](app/main.py) |
 
 ---
@@ -151,12 +152,17 @@ SDK calls during tests.
 ```bash
 gcloud services enable \
   run.googleapis.com \
+  cloudfunctions.googleapis.com \
   translate.googleapis.com \
   texttospeech.googleapis.com \
   places.googleapis.com \
   bigquery.googleapis.com \
   dlp.googleapis.com \
   secretmanager.googleapis.com
+
+# Provision the BigQuery dataset + chat_turns table (idempotent — re-run safe)
+GOOGLE_CLOUD_PROJECT="$(gcloud config get-value project)" \
+  python scripts/provision_bigquery.py
 
 # Store the Gemini key + Maps key in Secret Manager (one-time)
 gcloud secrets create GEMINI_API_KEY --replication-policy=automatic
@@ -206,6 +212,7 @@ app/
   places.py          # Google Maps Platform / Places API (New) wrapper
   analytics.py       # BigQuery streaming-insert wrapper + rule-based topic classifier
   dlp.py             # Cloud DLP redactor (PII scrubber) with LRU cache
+  secrets.py         # Secret Manager wrapper (env-first, SM fallback, cached)
   grounding.py       # Loads + validates election_info.json; states_and_uts()
   limiter.py         # Per-IP sliding-window limiter with Retry-After
   security.py        # CSP/HSTS/COOP/CORP headers + body-size middleware
@@ -220,10 +227,15 @@ app/
     i18n.json            # English source strings for UI translation
   static/
     index.html, app.js, style.css
+functions/
+  daily_summary/main.py    # Cloud Functions (gen-2) — daily BigQuery aggregator
+scripts/
+  provision_bigquery.py    # Idempotent BQ dataset + table provisioning (CREATE IF NOT EXISTS, PARTITION BY DATE)
 tests/
   test_api.py, test_chat.py, test_grounding.py, test_streaming.py,
   test_translation.py, test_speech.py, test_security_headers.py,
   test_limiter.py, test_places.py, test_analytics.py, test_dlp.py,
+  test_secrets.py, test_provision_bigquery.py, test_cloud_function.py,
   conftest.py
 .github/workflows/ci.yml    # ruff + mypy + pytest --cov-fail-under=85 on PR
 Dockerfile                  # python:3.12-slim, non-root, --no-cache-dir

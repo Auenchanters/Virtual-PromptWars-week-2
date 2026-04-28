@@ -106,3 +106,22 @@ def test_cloud_speaker_caches_and_truncates() -> None:
         s.synthesize("   ", "hi")
     with pytest.raises(ValueError):
         s.synthesize("x", "or")
+
+
+def test_lru_bytes_cache_max_size_overflow_boundary() -> None:
+    """TTS LRU: at exactly max_size all keys remain; one extra evicts one."""
+    from app.speech import _LruBytesCache
+
+    n = 3
+    c = _LruBytesCache(n)
+    for i in range(n):
+        c.put((f"k{i}", "hi"), f"v{i}".encode())
+    # All N entries still resident at the boundary.
+    for i in range(n):
+        assert c.get((f"k{i}", "hi")) == f"v{i}".encode()
+    # Crossing the boundary by one evicts exactly the LRU entry.
+    c.put(("kN", "hi"), b"vN")
+    assert c.get(("k0", "hi")) is None
+    for i in range(1, n):
+        assert c.get((f"k{i}", "hi")) == f"v{i}".encode()
+    assert c.get(("kN", "hi")) == b"vN"
