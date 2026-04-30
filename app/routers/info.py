@@ -48,6 +48,39 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+# RFC 9116 disclosure file. Long max-age is fine: contents only change when we
+# rotate ``Expires`` or contact details, and the file is tiny.
+SECURITY_TXT = (
+    "Contact: mailto:votewisesupport@gmail.com\n"
+    "Expires: 2027-04-30T00:00:00Z\n"
+    "Preferred-Languages: en\n"
+    "Canonical: https://election-assistant-256416723201.asia-south1.run.app/.well-known/security.txt\n"
+    "Policy: https://github.com/Auenchanters/Virtual-PromptWars-week-2/blob/main/SECURITY.md\n"
+)
+
+ROBOTS_TXT = "User-agent: *\nDisallow: /api/\nAllow: /\n"
+
+
+@router.get("/.well-known/security.txt", include_in_schema=False)
+async def security_txt() -> Response:
+    """RFC 9116 security disclosure file."""
+    return Response(
+        content=SECURITY_TXT,
+        media_type="text/plain; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@router.get("/robots.txt", include_in_schema=False)
+async def robots_txt() -> Response:
+    """Disallow crawlers from indexing API endpoints."""
+    return Response(
+        content=ROBOTS_TXT,
+        media_type="text/plain; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
 @router.get("/api/info")
 async def api_info(request: Request) -> Response:
     """Grounding payload with strong ETag + Cache-Control."""

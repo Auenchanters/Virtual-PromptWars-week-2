@@ -23,4 +23,4 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Cloud Run sends SIGTERM; uvicorn handles it cleanly.
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips=*"]
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips=* --no-server-header"]

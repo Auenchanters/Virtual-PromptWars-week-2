@@ -46,7 +46,7 @@ async def api_tts(
     return Response(
         content=audio,
         media_type="audio/mpeg",
-        headers={"Cache-Control": "private, max-age=300"},
+        headers={"Cache-Control": "no-store"},
     )
 
 

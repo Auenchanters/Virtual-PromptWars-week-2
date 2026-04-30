@@ -1109,6 +1109,10 @@ input[type="number"]:focus {
   50% { box-shadow: 0 0 0 8px rgba(79, 70, 229, 0); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .icon-btn.is-active { animation: none; }
+}
+
 .icon-btn--mic {
   position: absolute;
   right: 10px;

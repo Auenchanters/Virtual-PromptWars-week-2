@@ -14,7 +14,7 @@ from collections.abc import AsyncIterator
 from typing import Annotated
 
 import anyio
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
 
 from app.analytics import Analytics, classify_topic
@@ -81,6 +81,7 @@ def _record_chat_turn(
 async def api_chat(
     payload: ChatRequest,
     request: Request,
+    response: Response,
     background: BackgroundTasks,
     client: Annotated[GeminiClient, Depends(get_gemini_client)],
     translator: Annotated[Translator, Depends(_get_translator)],
@@ -88,6 +89,7 @@ async def api_chat(
     redactor: Annotated[Redactor, Depends(_get_redactor)],
 ) -> ChatResponse:
     _check_rate(rate_limiter, request)
+    response.headers["Cache-Control"] = "no-store"
 
     user_message_en = payload.message
     if payload.target_language != "en":

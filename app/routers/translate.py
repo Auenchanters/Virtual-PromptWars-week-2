@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.deps import _check_rate, _get_translator, _run_translate, translate_limiter
 from app.models import TranslateRequest, TranslateResponse
@@ -24,9 +24,11 @@ router = APIRouter()
 async def api_translate(
     payload: TranslateRequest,
     request: Request,
+    response: Response,
     translator: Annotated[Translator, Depends(_get_translator)],
 ) -> TranslateResponse:
     _check_rate(translate_limiter, request)
+    response.headers["Cache-Control"] = "no-store"
     try:
         out = await _run_translate(translator, payload.text, payload.target, payload.source)
     except Exception:

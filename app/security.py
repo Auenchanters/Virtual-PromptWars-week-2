@@ -56,6 +56,9 @@ async def security_headers_middleware(
     response.headers["Content-Security-Policy"] = CSP
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    # Strip the uvicorn server fingerprint (defence-in-depth, cheap to remove).
+    if "server" in response.headers:
+        del response.headers["server"]
 
     # HSTS only over HTTPS (Cloud Run terminates TLS and forwards X-Forwarded-Proto).
     forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()

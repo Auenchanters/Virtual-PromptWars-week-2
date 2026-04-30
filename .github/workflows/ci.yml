@@ -43,7 +43,15 @@ jobs:
         run: mypy app
 
       - name: Pytest with coverage
-        run: pytest --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=85
+        run: pytest --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=88
+
+      - name: Dependency vulnerability scan (pip-audit)
+        # Non-blocking: surface advisories in the run summary without failing
+        # the whole pipeline on a single upstream CVE we cannot patch this week.
+        continue-on-error: true
+        run: |
+          pip install pip-audit
+          pip-audit --requirement requirements.txt --strict
 
       - name: Repo size guard (<10 MB tracked)
         run: |
